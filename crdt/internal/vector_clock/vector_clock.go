@@ -2,6 +2,21 @@ package vector_clock
 
 type VectorClock map[string]int
 
+func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
+	newVectorClock := copyMap(v)
+	_, ok := v[replicaID]
+	if ok {
+		newVectorClock[replicaID]++
+	} else {
+		newVectorClock[replicaID] = 1
+	}
+	return newVectorClock
+}
+func (v VectorClock) Copy() VectorClock {
+	return copyMap(v)
+
+}
+
 func (vc1 VectorClock) Compare(vc2 VectorClock) int {
 	vc1Higher := true
 	vc2Higher := true
@@ -32,17 +47,6 @@ func (vc1 VectorClock) Compare(vc2 VectorClock) int {
 	} else {
 		return 0
 	}
-}
-
-func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
-	newVectorClock := copyMap(v)
-	_, ok := v[replicaID]
-	if ok {
-		newVectorClock[replicaID]++
-	} else {
-		newVectorClock[replicaID] = 1
-	}
-	return newVectorClock
 }
 
 func (vc1 VectorClock) Merge(vc2 VectorClock) VectorClock {
