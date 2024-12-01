@@ -6,8 +6,8 @@ import (
 
 type RopeBuffer []byte
 
-func (rp *RopeBuffer) Update(index int, newContent string, deletedLength int) (RopeValue, error) {
-	input := NewRopeValue("ropeBuffer", newContent)
+func (rp *RopeBuffer) Update(index int, newContent string, deletedLength int) (BlockValue, error) {
+	input := NewBlockValue("ropeBuffer", newContent)
 	if index < 0 {
 		return NewRopeBuffer(""), fmt.Errorf("[ERROR] Invalid Index %d", index)
 	} else if index >= rp.Len() {
@@ -23,7 +23,7 @@ func (rp *RopeBuffer) Update(index int, newContent string, deletedLength int) (R
 	}
 	return NewRopeBuffer(""), fmt.Errorf("[ERROR] Invalid Input Type")
 }
-func (rp *RopeBuffer) append(input RopeValue) error {
+func (rp *RopeBuffer) append(input BlockValue) error {
 	if buf, ok := input.(*RopeBuffer); ok {
 		(*rp) = append(*rp, (*buf)...)
 		return nil
@@ -31,16 +31,16 @@ func (rp *RopeBuffer) append(input RopeValue) error {
 		return fmt.Errorf("[ERROR] Invalid Input Type")
 	}
 }
-func (rp *RopeBuffer) Split(startIndex int, endIndex int) RopeValue {
+func (rp *RopeBuffer) Split(startIndex int, endIndex int) BlockValue {
 	value := (*rp)[startIndex:endIndex]
 	return &value
 }
 
-func (rp *RopeBuffer) SplitFrom(startIndex int) RopeValue {
+func (rp *RopeBuffer) SplitFrom(startIndex int) BlockValue {
 	value := (*rp)[startIndex:]
 	return &value
 }
-func (rp *RopeBuffer) SplitTo(endIndex int) RopeValue {
+func (rp *RopeBuffer) SplitTo(endIndex int) BlockValue {
 	value := (*rp)[:endIndex]
 	return &value
 }
@@ -48,11 +48,11 @@ func (rp *RopeBuffer) Len() int {
 	return len([]byte(*rp))
 }
 
-func NewRopeBuffer(b string) RopeValue {
+func NewRopeBuffer(b string) BlockValue {
 	rb := RopeBuffer(b)
 	return &rb
 }
-func CopyRopeBuffer(rp RopeValue) RopeValue {
+func CopyRopeBuffer(rp BlockValue) BlockValue {
 	rb := RopeBuffer(rp.String())
 	return &rb
 }

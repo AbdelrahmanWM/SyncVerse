@@ -1,11 +1,53 @@
 package block
 
-type Block interface {
-	Len() int
-	Split(index int) (Block, Block)
-	String() string
-	IsDeleted()bool
-	Compare(b Block) (int, error)
-	Offset()int
-	Delete()
+import (
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
+)
+
+type Block struct {
+	clockOffset *ClockOffset
+	content     BlockValue
+	blockType   string
+	deleted     bool
+}
+
+func NewBlock(clockOffset *ClockOffset, content string, blockType string, deleted bool) *Block {
+	return &Block{clockOffset: clockOffset, content: NewBlockValue(blockType, content), blockType: blockType, deleted: deleted}
+}
+func CopyBlock(block *Block) *Block{
+	return &Block{clockOffset:block.clockOffset.Copy(),content:CopyBlockValue(block.blockType,block.content),blockType: block.blockType,deleted:block.deleted}
+}
+func (b *Block) NewBlockValue(input string) BlockValue {
+	return NewBlockValue(b.blockType, input)
+}
+func (b *Block) CopyRopeValue(ropeValue BlockValue) BlockValue {
+	return CopyBlockValue(b.blockType, ropeValue)
+}
+func (c *Block) Len() int {
+	return c.content.Len()
+}
+func (c *Block) Split(index int) (*Block, *Block) {
+	leftContent, rightContent := c.content.SplitTo(index), c.content.SplitFrom(index)
+
+	return NewBlock(c.clockOffset.Copy(), leftContent.String(), c.blockType, c.deleted), NewBlock(NewClockOffset(c.clockOffset.vectorClock.Copy(), index), rightContent.String(), c.blockType, c.deleted)
+}
+
+func (c *Block) String() string {
+	return c.content.String()
+}
+func (c *Block) IsDeleted() bool {
+	return c.deleted
+}
+func (c *Block) Compare(b *Block) (int, error) {
+	return c.clockOffset.Compare(b.clockOffset), nil
+}
+
+func (c *Block) Offset() int {
+	return c.clockOffset.Offset()
+}
+func (c *Block) Delete() {
+	c.deleted = true
+}
+func (c *Block) ContainsOffset(offset int) bool {
+	return offset >= c.Offset() && offset < c.Offset()+c.content.Len()
 }

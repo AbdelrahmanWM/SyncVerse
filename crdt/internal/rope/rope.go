@@ -1,29 +1,30 @@
 package rope
-import (
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 
+import (
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
+	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
 )
 
 type Rope struct {
-	root *InnerNode
-	chunkSize int
-	splitSize int
-	mergeSize int
-	ropeType string
-	size int
-	replicaID string
+	root        *InnerNode
+	chunkSize   int
+	splitSize   int
+	mergeSize   int
+	ropeType    string
+	blockDSType string
+	size        int
+	replicaID   string
 }
+
 /*
 **
 Initializes a new rope with two empty leaf nodes
 */
-func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, replicaID string) *Rope {
+func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, blockDSType string, replicaID string) *Rope {
 	root := NewInnerNode(0, 0, nil, nil, nil)
-	root.SetLeft(NewLeafNode([]Block{NewCRDTBlk(NewClockOffset(VectorClock{replicaID:0},0),NewRopeValue(ropeType,""),false)}, root))
-	root.SetRight(NewLeafNode([]Block{NewCRDTBlk(NewClockOffset(VectorClock{replicaID:0},0),NewRopeValue(ropeType,""),false)}, root))
+	root.SetLeft(NewLeafNode(blockDS.NewBlockDS(blockDSType, make([]*Block, 0, 10)), root)) // capacity can be modified
+	root.SetRight(NewLeafNode(blockDS.NewBlockDS(blockDSType, make([]*Block, 0, 10)), root))
 	splitSize := max(1, int(splitRatio*float64(maximumChunkLength)))
 	mergeSize := max(1, int(mergeRatio*float64(maximumChunkLength)))
 
@@ -33,22 +34,21 @@ func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, rop
 		splitSize,
 		mergeSize,
 		ropeType,
+		blockDSType,
 		0,
 		replicaID,
 	}
 }
-func (r *Rope) ReplicaID()string {
+func (r *Rope) NewRopeBlockDS(blocks []*Block) blockDS.BlockDS {
+	return blockDS.NewBlockDS(r.blockDSType, blocks)
+}
+func (r *Rope) ReplicaID() string {
 	return r.replicaID
 }
-func (r *Rope) Root()*InnerNode {
+func (r *Rope) Root() *InnerNode {
 	return r.root
 }
-func (r *Rope) NewRopeValue(input string) RopeValue {
-	return NewRopeValue(r.ropeType, input)
-}
-func (r *Rope) CopyRopeValue(ropeValue RopeValue) RopeValue {
-	return CopyRopeValue(r.ropeType, ropeValue)
-}
+
 func (r *Rope) SetRoot(newRoot *InnerNode) {
 	r.root = newRoot
 }

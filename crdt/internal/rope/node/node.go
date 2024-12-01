@@ -1,7 +1,7 @@
 package node
 
 import (
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 )
 
 type RopeNode interface {
@@ -26,7 +26,7 @@ type InnerNode struct {
 	Node
 }
 type LeafNode struct {
-	blocks []Block
+	blocks BlockDS
 	Node
 }
 
@@ -66,15 +66,15 @@ func (r *InnerNode) SetLeftWeight(w int) {
 }
 
 // //////////////////////////////////////////////////
-func (r *LeafNode) Blocks() []Block {
+func (r *LeafNode) Blocks() BlockDS {
 	return r.blocks
 }
-func (r *LeafNode) SetBlocks(blocks []Block) {
+func (r *LeafNode) SetBlocks(blocks BlockDS) {
 	r.blocks = blocks
 }
 
 func (r *LeafNode) Weight() int {
-	return len(r.blocks)
+	return r.blocks.Size()
 }
 
 func NewInnerNode(leftWeight, weight int, left, right, parent RopeNode) *InnerNode {
@@ -83,10 +83,10 @@ func NewInnerNode(leftWeight, weight int, left, right, parent RopeNode) *InnerNo
 		*NewNode(weight, left, right, parent),
 	}
 }
-func NewLeafNode(blocks []Block, parent RopeNode) *LeafNode {
+func NewLeafNode(blocks BlockDS, parent RopeNode) *LeafNode {
 	return &LeafNode{
 		blocks,
-		*NewNode(len(blocks), nil, nil, parent),
+		*NewNode(blocks.Size(), nil, nil, parent),
 	}
 }
 

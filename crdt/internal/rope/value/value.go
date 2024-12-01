@@ -1,37 +1,37 @@
 package value
 
 type constructors = struct {
-	constructor     func(string) RopeValue
-	copyConstructor func(RopeValue) RopeValue
+	constructor     func(string) BlockValue
+	copyConstructor func(BlockValue) BlockValue
 }
 
-var ropeValueRegistry = make(map[string]constructors)
+var BlockValueRegistry = make(map[string]constructors)
 
-type RopeValue interface {
-	Update(index int, input string, deletedLength int) (RopeValue, error)
+type BlockValue interface {
+	Update(index int, input string, deletedLength int) (BlockValue, error)
 	Len() int
-	Split(startIndex int, endIndex int) RopeValue
-	SplitFrom(startIndex int) RopeValue
-	SplitTo(endIndex int) RopeValue
+	Split(startIndex int, endIndex int) BlockValue
+	SplitFrom(startIndex int) BlockValue
+	SplitTo(endIndex int) BlockValue
 	String() string
 }
 
-func NewRopeValue(typename string, value string) RopeValue {
-	ropeValueType, ok := ropeValueRegistry[typename]
+func NewBlockValue(typename string, value string) BlockValue {
+	BlockValueType, ok := BlockValueRegistry[typename]
 	if ok {
-		return ropeValueType.constructor(value)
+		return BlockValueType.constructor(value)
 	}
 	return nil
 }
-func CopyRopeValue(typename string, value RopeValue) RopeValue {
-	ropeValueType, ok := ropeValueRegistry[typename]
+func CopyBlockValue(typename string, value BlockValue) BlockValue {
+	BlockValueType, ok := BlockValueRegistry[typename]
 	if ok {
-		return ropeValueType.copyConstructor(value)
+		return BlockValueType.copyConstructor(value)
 	}
 	return nil
 }
-func RegisterNewRopeType(typename string, constructor func(string) RopeValue, copyConstructor func(RopeValue) RopeValue) {
-	ropeValueRegistry[typename] = constructors{constructor, copyConstructor}
+func RegisterNewRopeType(typename string, constructor func(string) BlockValue, copyConstructor func(BlockValue) BlockValue) {
+	BlockValueRegistry[typename] = constructors{constructor, copyConstructor}
 }
 
 func RegisterRopeTypes() {
