@@ -28,9 +28,9 @@ func (b BlockArray) Size() int {
 func (b BlockArray) Len() int {
 	return len(b.blocks)
 }
-func (b BlockArray) Find(index int) *Block {
+func (b BlockArray) Find(index int) (*Block,int) {
 	if index < 0 || index >= b.size {
-		return nil
+		return nil,0
 	}
 	for i := 0; i < len(b.blocks); i++ {
 		if b.blocks[i].IsDeleted() {
@@ -38,10 +38,10 @@ func (b BlockArray) Find(index int) *Block {
 		}
 		block := b.blocks[i]
 		if block.Len() > index {
-			return block
+			return block,index
 		} else {
 			index -= block.Len()
 		}
 	}
-	return nil
+	return nil,0
 }

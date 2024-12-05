@@ -46,7 +46,7 @@ func TestFind(t *testing.T) {
 	}
 	for _, ts := range testcases {
 		t.Run(ts.description, func(t *testing.T) {
-			got := ts.target.Find(ts.index)
+			got,_ := ts.target.Find(ts.index)
 			if !reflect.DeepEqual(got, ts.want) {
 				t.Errorf("expected %v, got %v", ts.want, got)
 			}

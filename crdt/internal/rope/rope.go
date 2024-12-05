@@ -76,3 +76,70 @@ func (r *Rope) Find(position int) (*LeafNode, int) {
 	}
 	return nil, -1
 }
+func (r *Rope) FindBlock(position int) (*Block, int) {
+	node, index := r.Find(position)
+	if node == nil {
+		return nil, 0
+	}
+	block, bIndex := node.Blocks().Find(index)
+	if block == nil {
+		return nil, index // for a later use
+	}
+	return block, bIndex
+}
+func (r *Rope) FindBlockFromNode(node *LeafNode, index int)(*Block, int){
+block, bIndex := node.Blocks().Find(index)
+	if block == nil {
+		return nil, index // for a later use
+	}
+	return block, bIndex
+}
+
+
+
+func (r *Rope) nextLeaf(leafNode *LeafNode) *LeafNode {
+	if leafNode == nil {
+		return nil
+	}
+
+	var ptr RopeNode
+	ptr = leafNode
+
+	for isRightChild(ptr) {
+		ptr = ptr.Parent()
+	}
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Parent()
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Right()
+	for _, ok := ptr.(*LeafNode); ptr != nil && !ok; _, ok = ptr.(*LeafNode) {
+		ptr = ptr.Left()
+	}
+	return ptr.(*LeafNode)
+}
+func isRightChild(childNode RopeNode) bool {
+	parent := childNode.Parent()
+	if parent == nil {
+		return false
+	}
+	return childNode.Parent().Right() == childNode
+}
+
+func isLeftChild(childNode RopeNode) bool {
+	parent := childNode.Parent()
+	if parent == nil {
+		return false
+	}
+	return childNode.Parent().Left() == childNode
+}
+func replaceChild(parent, currentChild, newChild RopeNode) {
+	if parent.Left() == currentChild {
+		parent.SetLeft(newChild)
+	} else {
+		parent.SetRight(newChild)
+	}
+}
