@@ -2,6 +2,9 @@ package vector_clock
 
 type VectorClock map[string]int
 
+func NewVectorClock(replicaID string) VectorClock {
+	return VectorClock{replicaID: 1}
+}
 func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
 	newVectorClock := copyMap(v)
 	_, ok := v[replicaID]
