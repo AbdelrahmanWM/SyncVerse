@@ -171,3 +171,52 @@ func TestMerge(t *testing.T) {
 		})
 	}
 }
+func TestEquals(t *testing.T) {
+	testCases := []struct {
+		v1   VectorClock
+		v2   VectorClock
+		want bool
+	}{
+		{
+			VectorClock{"A": 0},
+			VectorClock{"A": 0},
+			true,
+		},
+		{
+			VectorClock{"A": 1},
+			VectorClock{"A": 0},
+			false,
+		},
+		{
+			VectorClock{"A": 1, "B": 2},
+			VectorClock{"A": 1, "B": 2},
+			true,
+		},
+		{
+			VectorClock{"A": 1, "B": 2},
+			VectorClock{"A": 1, "B": 3},
+			false,
+		},
+		{
+			VectorClock{"A": 1},
+			VectorClock{"A": 1, "B": 0},
+			false,
+		},
+		{
+			VectorClock{},
+			VectorClock{},
+			true,
+		},
+		{
+			VectorClock{"A": 1},
+			VectorClock{},
+			false,
+		},
+	}
+	for _, ts := range testCases {
+		got := ts.v1.Equals(ts.v2)
+		if got != ts.want {
+			t.Errorf("got %v, want %v, v1: %v, v2: %v", got, ts.want, ts.v1, ts.v2)
+		}
+	}
+}

@@ -1,8 +1,4 @@
-package block
-
-import (
-	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
-)
+package vector_clock
 
 type ClockOffset struct {
 	offset      int

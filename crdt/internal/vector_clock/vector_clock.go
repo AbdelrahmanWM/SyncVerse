@@ -19,7 +19,14 @@ func (v VectorClock) Copy() VectorClock {
 	return copyMap(v)
 
 }
-
+func (vc1 VectorClock) Equals(vc2 VectorClock) bool {
+	for k, v := range vc1 {
+		if v != vc2[k] {
+			return false
+		}
+	}
+	return len(vc1) == len(vc2)
+}
 func (vc1 VectorClock) Compare(vc2 VectorClock) int {
 	vc1Higher := true
 	vc2Higher := true

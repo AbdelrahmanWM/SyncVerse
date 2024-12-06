@@ -2,6 +2,7 @@ package block
 
 import (
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )
 
 type Block struct {
@@ -14,8 +15,8 @@ type Block struct {
 func NewBlock(clockOffset *ClockOffset, content string, blockType string, deleted bool) *Block {
 	return &Block{clockOffset: clockOffset, content: NewBlockValue(blockType, content), blockType: blockType, deleted: deleted}
 }
-func CopyBlock(block *Block) *Block{
-	return &Block{clockOffset:block.clockOffset.Copy(),content:CopyBlockValue(block.blockType,block.content),blockType: block.blockType,deleted:block.deleted}
+func CopyBlock(block *Block) *Block {
+	return &Block{clockOffset: block.clockOffset.Copy(), content: CopyBlockValue(block.blockType, block.content), blockType: block.blockType, deleted: block.deleted}
 }
 func (b *Block) NewBlockValue(input string) BlockValue {
 	return NewBlockValue(b.blockType, input)
@@ -29,7 +30,7 @@ func (c *Block) Len() int {
 func (c *Block) Split(index int) (*Block, *Block) {
 	leftContent, rightContent := c.content.SplitTo(index), c.content.SplitFrom(index)
 
-	return NewBlock(c.clockOffset.Copy(), leftContent.String(), c.blockType, c.deleted), NewBlock(NewClockOffset(c.clockOffset.vectorClock.Copy(), index), rightContent.String(), c.blockType, c.deleted)
+	return NewBlock(c.clockOffset.Copy(), leftContent.String(), c.blockType, c.deleted), NewBlock(NewClockOffset(c.clockOffset.VectorClock().Copy(), index), rightContent.String(), c.blockType, c.deleted)
 }
 
 func (c *Block) String() string {
@@ -50,4 +51,7 @@ func (c *Block) Delete() {
 }
 func (c *Block) ContainsOffset(offset int) bool {
 	return offset >= c.Offset() && offset < c.Offset()+c.content.Len()
+}
+func (c *Block) HasVectorClock(vectorClock VectorClock) bool {
+	return c.clockOffset.VectorClock().Equals(vectorClock)
 }

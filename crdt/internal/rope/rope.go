@@ -4,6 +4,8 @@ import (
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
+	vectorClock "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
+	// event "github.com/AbdelrahmanWM/SyncVerse/crdt/Event"
 )
 
 type Rope struct {
@@ -76,26 +78,48 @@ func (r *Rope) Find(position int) (*LeafNode, int) {
 	}
 	return nil, -1
 }
-func (r *Rope) FindBlock(position int) (*Block, int) {
-	node, index := r.Find(position)
-	if node == nil {
+func (r *Rope) Insert(vector_clock *vectorClock.ClockOffset, contentBlock *Block) {
+
+}
+func (r *Rope) FindBlock(clockOffset vectorClock.ClockOffset, startIndex int) (*Block, int) { // not tested
+	node, idx := r.Find(startIndex)
+	block, blkLocalIdx, _ := r.FindBlockFromNode(node, idx)
+	if block == nil {
 		return nil, 0
 	}
-	block, bIndex := node.Blocks().Find(index)
-	if block == nil {
-		return nil, index // for a later use
+	for !block.HasVectorClock(clockOffset.VectorClock()) && block.ContainsOffset(clockOffset.Offset()) {
+		block = node.Blocks().NextBlock(blkLocalIdx)
+		if block == nil {
+			node = r.nextLeaf(node)
+			if node == nil {
+				return nil, 0 /// no blocks found
+			}
+			blkLocalIdx = 0
+		} else {
+			blkLocalIdx++
+		}
 	}
-	return block, bIndex
-}
-func (r *Rope) FindBlockFromNode(node *LeafNode, index int)(*Block, int){
-block, bIndex := node.Blocks().Find(index)
-	if block == nil {
-		return nil, index // for a later use
-	}
-	return block, bIndex
+	return block, clockOffset.Offset() - block.Offset() // get relative index within the block
 }
 
-
+func (r *Rope) FindBlockFromIndex(position int) (*Block, int, int) {
+	node, index := r.Find(position)
+	if node == nil {
+		return nil, 0, 0
+	}
+	block, bIndex, blkIndex := node.Blocks().Find(index)
+	if block == nil {
+		return nil, index, blkIndex // for a later use
+	}
+	return block, bIndex, node.Blocks().Len()
+}
+func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (*Block, int, int) {
+	block, bIndex, blkIndex := node.Blocks().Find(index)
+	if block == nil {
+		return nil, index, node.Blocks().Len() // for a later use
+	}
+	return block, bIndex, blkIndex
+}
 
 func (r *Rope) nextLeaf(leafNode *LeafNode) *LeafNode {
 	if leafNode == nil {

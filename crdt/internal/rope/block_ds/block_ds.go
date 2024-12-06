@@ -10,7 +10,8 @@ var BlockDSRegistry = make(map[string]BlockDSConstructor) // not optimal, change
 type BlockDS interface {
 	Len() int  // number of blocks
 	Size() int // number of characters
-	Find(index int) (*Block,int)
+	Find(index int) (block *Block, localIndex int, blockIndex int)
+	NextBlock(blockIndex int) *Block
 }
 
 func NewBlockDS(typename string, blocks []*Block) BlockDS {
