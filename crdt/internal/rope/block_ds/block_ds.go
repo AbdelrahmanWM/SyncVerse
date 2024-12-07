@@ -12,6 +12,7 @@ type BlockDS interface {
 	Size() int // number of characters
 	Find(index int) (block *Block, localIndex int, blockIndex int)
 	NextBlock(blockIndex int) *Block
+	Update(index int, blocks []*Block, numberOfDeletedBlocks int) error
 }
 
 func NewBlockDS(typename string, blocks []*Block) BlockDS {

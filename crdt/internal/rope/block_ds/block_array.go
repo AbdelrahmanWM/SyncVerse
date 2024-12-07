@@ -1,6 +1,8 @@
 package block_ds
 
 import (
+	"fmt"
+
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 )
 
@@ -16,19 +18,19 @@ func NewBlockArray(b []*Block) BlockDS {
 		size += b[i].Len()
 		blocks[i] = CopyBlock(b[i])
 	}
-	return BlockArray{
+	return &BlockArray{
 		blocks,
 		size,
 	}
 }
 
-func (b BlockArray) Size() int {
+func (b *BlockArray) Size() int {
 	return b.size
 }
-func (b BlockArray) Len() int {
+func (b *BlockArray) Len() int {
 	return len(b.blocks)
 }
-func (b BlockArray) Find(index int) (block *Block, localIndex int, blockIndex int) {
+func (b *BlockArray) Find(index int) (block *Block, localIndex int, blockIndex int) {
 	if index < 0 || index >= b.size {
 		return nil, 0, 0
 	}
@@ -45,9 +47,44 @@ func (b BlockArray) Find(index int) (block *Block, localIndex int, blockIndex in
 	}
 	return nil, 0, len(b.blocks)
 }
-func (b BlockArray) NextBlock(blockIndex int) *Block {
+func (b *BlockArray) NextBlock(blockIndex int) *Block {
 	if blockIndex >= b.Len()-1 {
 		return nil
 	}
 	return b.blocks[blockIndex+1]
+}
+
+func (b *BlockArray) Update(index int, blocks []*Block, numberOfDeletedBlocks int) error {
+	if index < 0 {
+		return fmt.Errorf("[ERROR] Invalid Index %d", index)
+	} else if index >= b.Len() {
+		err := b.append(blocks)
+		return err
+	}
+
+	endOfDeletion := min(index+numberOfDeletedBlocks, b.Len())
+
+	deletedBlks := b.blocks[index:endOfDeletion]
+
+	addedLen := 0
+	for _, blk := range blocks {
+		addedLen += blk.Len()
+	}
+	for _, blk := range deletedBlks {
+		addedLen -= blk.Len()
+	}
+	b.blocks = append(b.blocks[:index], append(blocks, b.blocks[endOfDeletion:]...)...)
+
+	b.size += addedLen
+	return nil
+}
+
+func (b *BlockArray) append(blocks []*Block) error {
+	b.blocks = append(b.blocks, blocks...)
+	addedLen := 0
+	for _, blk := range blocks {
+		addedLen += blk.Len()
+	}
+	b.size += addedLen
+	return nil
 }
