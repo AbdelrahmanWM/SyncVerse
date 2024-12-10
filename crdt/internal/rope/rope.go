@@ -1,6 +1,8 @@
 package rope
 
 import (
+	"fmt"
+
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
@@ -25,8 +27,12 @@ Initializes a new rope with two empty leaf nodes
 */
 func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, blockDSType string, replicaID string) *Rope {
 	root := NewInnerNode(0, 0, nil, nil, nil)
-	root.SetLeft(NewLeafNode(blockDS.NewBlockDS(blockDSType, make([]*Block, 0, 10)), root)) // capacity can be modified
+	leftBlocks := make([]*Block, 1, 10)
+	firstBlock := NewBlock(vectorClock.NewClockOffset(vectorClock.NewVectorClock(replicaID), 0), " ", ropeType, true)
+	leftBlocks[0] = firstBlock
+	root.SetLeft(NewLeafNode(blockDS.NewBlockDS(blockDSType, leftBlocks), root)) // capacity can be modified
 	root.SetRight(NewLeafNode(blockDS.NewBlockDS(blockDSType, make([]*Block, 0, 10)), root))
+
 	splitSize := max(1, int(splitRatio*float64(maximumChunkLength)))
 	mergeSize := max(1, int(mergeRatio*float64(maximumChunkLength)))
 
@@ -78,28 +84,77 @@ func (r *Rope) Find(position int) (*LeafNode, int) {
 	}
 	return nil, -1
 }
-func (r *Rope) Insert(vector_clock *vectorClock.ClockOffset, contentBlock *Block) {
-
-}
-func (r *Rope) FindBlock(clockOffset vectorClock.ClockOffset, startIndex int) (*Block, int) { // not tested
-	node, idx := r.Find(startIndex)
-	block, blkLocalIdx, _ := r.FindBlockFromNode(node, idx)
-	if block == nil {
-		return nil, 0
+func (r *Rope) Insert(contentBlock *Block, clockOffset *vectorClock.ClockOffset, startIndex int) bool {
+	curNode, block, localIdx, blockIdx := r.findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset, startIndex)
+	fmt.Println(curNode)
+	fmt.Println(block)
+	fmt.Println(localIdx)
+	fmt.Println(blockIdx)
+	fmt.Println("****")
+	/// deal with the case where its in the middle of the block
+	if block.ContainsOffset(localIdx) {
+		leftBlock, rightBlock := block.Split(localIdx)
+		curNode.Blocks().Update(blockIdx, []*Block{leftBlock, contentBlock, rightBlock}, 1)
+		return true
 	}
-	for !block.HasVectorClock(clockOffset.VectorClock()) && block.ContainsOffset(clockOffset.Offset()) {
-		block = node.Blocks().NextBlock(blkLocalIdx)
+	fmt.Println("3\n")
+	var i int = blockIdx
+	var node *LeafNode
+	inserted := false
+	nextNode := r.nextLeaf(node)
+	fmt.Println("4\n")
+nested:
+	for node := curNode; nextNode != nil; node = nextNode {
+		blk := node.Blocks().Get(i)
+		for ; i < node.Blocks().Len(); i++ {
+
+			val, err := blk.Compare(contentBlock)
+			if err != nil {
+				return false /// change later
+			}
+			switch val {
+
+			case 0:
+				if blk.CompareHashes(contentBlock) > 0 {
+					node.Blocks().Update(i, []*Block{contentBlock}, 0) // insert the block in the right place
+					inserted = true
+					break nested
+
+				}
+			case 1:
+				node.Blocks().Update(i, []*Block{contentBlock}, 0)
+				inserted = true
+				break nested
+			}
+		}
+		i = 0
+		nextNode = r.nextLeaf(nextNode)
+	}
+	fmt.Println("5\n")
+	if !inserted { // inserting in the last node
+		node.Blocks().Update(node.Blocks().Len(), []*Block{contentBlock}, 0)
+	}
+	return true
+}
+func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *vectorClock.ClockOffset, startIndex int) (node *LeafNode, block *Block, localIndex int, blockIndex int) { // not tested
+	node, idx := r.Find(startIndex)
+	block, blkLocalIdx, blockIndex := r.FindBlockFromNode(node, idx)
+	if block == nil {
+		return node, nil, 0, 0
+	}
+	for !(block.HasVectorClock(clockOffset.VectorClock()) && (block.ContainsOffset(clockOffset.Offset())) || clockOffset.Offset() == block.Len()) {
+		block = node.Blocks().Get(blkLocalIdx)
 		if block == nil {
 			node = r.nextLeaf(node)
 			if node == nil {
-				return nil, 0 /// no blocks found
+				return nil, nil, 0, 0 /// no blocks found
 			}
 			blkLocalIdx = 0
 		} else {
 			blkLocalIdx++
 		}
 	}
-	return block, clockOffset.Offset() - block.Offset() // get relative index within the block
+	return node, block, clockOffset.Offset() - block.Offset(), blkLocalIdx // get relative index within the block
 }
 
 func (r *Rope) FindBlockFromIndex(position int) (*Block, int, int) {
@@ -113,7 +168,7 @@ func (r *Rope) FindBlockFromIndex(position int) (*Block, int, int) {
 	}
 	return block, bIndex, node.Blocks().Len()
 }
-func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (*Block, int, int) {
+func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (block *Block, localIndex int, blockIndex int) {
 	block, bIndex, blkIndex := node.Blocks().Find(index)
 	if block == nil {
 		return nil, index, node.Blocks().Len() // for a later use
