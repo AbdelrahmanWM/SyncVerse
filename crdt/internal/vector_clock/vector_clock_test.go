@@ -220,3 +220,52 @@ func TestEquals(t *testing.T) {
 		}
 	}
 }
+func TestCompareHashes(t *testing.T) {
+	testCases := []struct {
+		v1   VectorClock
+		v2   VectorClock
+		want int
+	}{
+		{
+			VectorClock{"A": 0},
+			VectorClock{"A": 0},
+			0,
+		},
+		{
+			VectorClock{"A": 1},
+			VectorClock{"A": 0},
+			1,
+		},
+		{
+			VectorClock{"A": 1, "B": 2},
+			VectorClock{"A": 1, "B": 2},
+			0,
+		},
+		{
+			VectorClock{"A": 1, "B": 2},
+			VectorClock{"A": 1, "B": 3},
+			-1,
+		},
+		{
+			VectorClock{"A": 1},
+			VectorClock{"A": 1, "B": 0},
+			-1,
+		},
+		{
+			VectorClock{},
+			VectorClock{},
+			0,
+		},
+		{
+			VectorClock{"A": 1, "B": 1, "C": 2},
+			VectorClock{"B": 1, "C": 2, "D": 2},
+			-1,
+		},
+	}
+	for _, ts := range testCases {
+		got := ts.v1.CompareHashes(ts.v2)
+		if got != ts.want {
+			t.Errorf("expected %v, got %v", ts.want, got)
+		}
+	}
+}

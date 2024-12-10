@@ -55,3 +55,6 @@ func (c *Block) ContainsOffset(offset int) bool {
 func (c *Block) HasVectorClock(vectorClock VectorClock) bool {
 	return c.clockOffset.VectorClock().Equals(vectorClock)
 }
+func (c *Block) CompareHashes(c2 *Block) int {
+	return c.clockOffset.CompareHashes(c2.clockOffset)
+}

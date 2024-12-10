@@ -47,6 +47,9 @@ func (b *BlockArray) Find(index int) (block *Block, localIndex int, blockIndex i
 	}
 	return nil, 0, len(b.blocks)
 }
+func (b *BlockArray)Get(blockIndex int )*Block {
+	return b.blocks[blockIndex];
+}
 func (b *BlockArray) NextBlock(blockIndex int) *Block {
 	if blockIndex >= b.Len()-1 {
 		return nil
@@ -54,17 +57,17 @@ func (b *BlockArray) NextBlock(blockIndex int) *Block {
 	return b.blocks[blockIndex+1]
 }
 
-func (b *BlockArray) Update(index int, blocks []*Block, numberOfDeletedBlocks int) error {
-	if index < 0 {
-		return fmt.Errorf("[ERROR] Invalid Index %d", index)
-	} else if index >= b.Len() {
+func (b *BlockArray) Update(blkIndex int, blocks []*Block, numberOfDeletedBlocks int) error {
+	if blkIndex < 0 {
+		return fmt.Errorf("[ERROR] Invalid Index %d", blkIndex)
+	} else if blkIndex >= b.Len() {
 		err := b.append(blocks)
 		return err
 	}
 
-	endOfDeletion := min(index+numberOfDeletedBlocks, b.Len())
+	endOfDeletion := min(blkIndex+numberOfDeletedBlocks, b.Len())
 
-	deletedBlks := b.blocks[index:endOfDeletion]
+	deletedBlks := b.blocks[blkIndex:endOfDeletion]
 
 	addedLen := 0
 	for _, blk := range blocks {
@@ -73,7 +76,7 @@ func (b *BlockArray) Update(index int, blocks []*Block, numberOfDeletedBlocks in
 	for _, blk := range deletedBlks {
 		addedLen -= blk.Len()
 	}
-	b.blocks = append(b.blocks[:index], append(blocks, b.blocks[endOfDeletion:]...)...)
+	b.blocks = append(b.blocks[:blkIndex], append(blocks, b.blocks[endOfDeletion:]...)...)
 
 	b.size += addedLen
 	return nil

@@ -11,6 +11,7 @@ type BlockDS interface {
 	Len() int  // number of blocks
 	Size() int // number of characters
 	Find(index int) (block *Block, localIndex int, blockIndex int)
+	Get(blockIndex int)*Block
 	NextBlock(blockIndex int) *Block
 	Update(index int, blocks []*Block, numberOfDeletedBlocks int) error
 }

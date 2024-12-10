@@ -1,5 +1,10 @@
 package vector_clock
 
+import (
+	"slices"
+	"strconv"
+)
+
 type VectorClock map[string]int
 
 func NewVectorClock(replicaID string) VectorClock {
@@ -18,6 +23,17 @@ func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, 
 func (v VectorClock) Copy() VectorClock {
 	return copyMap(v)
 
+}
+func (vc VectorClock) CompareHashes(vc2 VectorClock) int {
+	str1 := vc.toString()
+	str2 := vc2.toString()
+	if str1 == str2 {
+		return 0
+	} else if str1 < str2 {
+		return -1
+	} else {
+		return 1
+	}
 }
 func (vc1 VectorClock) Equals(vc2 VectorClock) bool {
 	for k, v := range vc1 {
@@ -80,4 +96,23 @@ func copyMap(m map[string]int) map[string]int {
 		newM[k] = v
 	}
 	return newM
+}
+func toKeysArray(m map[string]int) []string {
+	results := make([]string, len(m))
+	i := 0
+	for k, _ := range m {
+		results[i] = k
+		i++
+	}
+	return results
+}
+func (vc VectorClock) toString() string {
+	var result string
+	keys := toKeysArray(vc)
+	slices.Sort(keys)
+	for _, v := range keys {
+		result += (v + "-" + strconv.Itoa(vc[v]) + "-")
+	}
+	return result
+
 }

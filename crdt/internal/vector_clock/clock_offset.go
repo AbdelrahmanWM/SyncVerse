@@ -30,3 +30,6 @@ func (c *ClockOffset) Compare (co *ClockOffset)int{
 func (c *ClockOffset) Merge (co *ClockOffset) *ClockOffset{
 	return NewClockOffset(c.vectorClock.Merge(co.vectorClock),0);
 }
+func (c *ClockOffset)CompareHashes(c2 *ClockOffset)int{
+	return c.vectorClock.CompareHashes(c2.vectorClock);
+}

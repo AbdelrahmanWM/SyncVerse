@@ -75,7 +75,7 @@ func TestUpdate(t *testing.T) { // outdated
 		{
 			"adding in the middle",
 			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
-			1, //append
+			1, 
 			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false)},
 			0,
 			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 11},
