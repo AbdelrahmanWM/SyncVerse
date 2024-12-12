@@ -29,13 +29,33 @@ func TestInsert(t *testing.T) {
 		rope := NewRope(64, 0.75, 0.65, "ropeBuffer", "blockArray", "A")
 
 		firstBlockOffset := NewClockOffset(VectorClock{"A": 1}, 0)
-		startIndex := 0
+		startIndex := 1
 		newBlock := NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 1}, 0), "ABC", "ropeBuffer", false)
 		rope.Insert(newBlock, firstBlockOffset, startIndex)
-		got := rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(1)
+		got := rope.Root().Right().(*LeafNode).Blocks().(*BlockArray).Get(1)
 		if !reflect.DeepEqual(got, newBlock) {
 			t.Errorf("expected %v, got %v", newBlock, got)
 		}
-
 	})
+	t.Run("Multiple insertions", func(t *testing.T) {
+		rope := NewRope(64, 0.75, 0.65, "ropeBuffer", "blockArray", "A")
+
+		blockOffset := NewClockOffset(VectorClock{"A": 1}, 0)
+		startIndex := 0
+		newBlock := NewBlock(NewClockOffset(VectorClock{"B": 1}, 0), "ABC", "ropeBuffer", false)
+		rope.Insert(newBlock, blockOffset, startIndex)
+		got := rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(1)
+		Assert(t, got, newBlock)
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "D", "ropeBuffer", false)
+		blockOffset = NewClockOffset(VectorClock{"B": 1}, 3)
+		rope.Insert(newBlock, blockOffset, startIndex)
+		got = rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(2)
+		Assert(t, got, newBlock)
+	})
+}
+func Assert(t *testing.T, got, want *Block) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("expected %v, got %v", want, got)
+	}
 }

@@ -31,6 +31,9 @@ func (b *BlockArray) Len() int {
 	return len(b.blocks)
 }
 func (b *BlockArray) Find(index int) (block *Block, localIndex int, blockIndex int) {
+	if b.Get(0).Len() == 0 && index == 0 { //first block
+		return b.Get(0), 0, 0
+	}
 	if index < 0 || index >= b.size {
 		return nil, 0, 0
 	}
@@ -47,8 +50,8 @@ func (b *BlockArray) Find(index int) (block *Block, localIndex int, blockIndex i
 	}
 	return nil, 0, len(b.blocks)
 }
-func (b *BlockArray)Get(blockIndex int )*Block {
-	return b.blocks[blockIndex];
+func (b *BlockArray) Get(blockIndex int) *Block {
+	return b.blocks[blockIndex]
 }
 func (b *BlockArray) NextBlock(blockIndex int) *Block {
 	if blockIndex >= b.Len()-1 {
