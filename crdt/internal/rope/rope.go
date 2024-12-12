@@ -26,13 +26,12 @@ type Rope struct {
 Initializes a new rope with two empty leaf nodes
 */
 func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, blockDSType string, replicaID string) *Rope {
-	root := NewInnerNode(1, 1, nil, nil, nil)
+	root := NewInnerNode(1, 2, nil, nil, nil)
 	leftBlocks := make([]*Block, 1, 10)
 	firstVectorClock := vectorClock.NewVectorClock(replicaID)
-	firstBlock := NewBlock(vectorClock.NewClockOffset(firstVectorClock, 0), " ", ropeType, false)
-	leftBlocks[0] = firstBlock
+	leftBlocks[0] = NewBlock(vectorClock.NewClockOffset(firstVectorClock, 0), " ", ropeType, false)
 	rightBlocks := make([]*Block, 1, 10)
-	rightBlocks[0] = NewBlock(vectorClock.NewClockOffset(firstVectorClock.NewVectorClock(replicaID), 1), "", ropeType, false)
+	rightBlocks[0] = NewBlock(vectorClock.NewClockOffset(firstVectorClock.NewVectorClock(replicaID), 1), " ", ropeType, false)
 	root.SetLeft(NewLeafNode(blockDS.NewBlockDS(blockDSType, leftBlocks), root)) // capacity can be modified
 	root.SetRight(NewLeafNode(blockDS.NewBlockDS(blockDSType, rightBlocks), root))
 
@@ -89,23 +88,27 @@ func (r *Rope) Find(position int) (*LeafNode, int) {
 }
 func (r *Rope) Insert(contentBlock *Block, clockOffset *vectorClock.ClockOffset, startIndex int) bool {
 	curNode, block, localIdx, blockIdx := r.findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset, startIndex)
+	inserted := false
 
 	/// deal with the case where its in the middle of the block
 	if block.ContainsOffset(localIdx) {
 		leftBlock, rightBlock := block.Split(localIdx)
-		blocks := []*Block{leftBlock, contentBlock, rightBlock}
+		blocks := []*Block{}
+		if leftBlock != nil {
+			blocks = append(blocks, leftBlock)
+		}
+		blocks = append(blocks, contentBlock)
+		blocks = append(blocks, rightBlock)
 		curNode.Blocks().Update(blockIdx, blocks, 1)
-		return true
+		inserted = true
 	}
-	var i int = blockIdx
+	var i int = blockIdx + 1
 	var node LeafNode = *curNode
 	var refNode *LeafNode = &node
 	var len int
-	inserted := false
 	nextNode := r.nextLeaf(curNode)
-nested:
 
-	for node = *curNode; nextNode != nil; node, nextNode = *nextNode, r.nextLeaf(nextNode) {
+	for node = *curNode; nextNode != nil && !inserted; node, nextNode = *nextNode, r.nextLeaf(nextNode) {
 		refNode = &node
 		blk := refNode.Blocks().Get(i)
 		len = refNode.Blocks().Len()
@@ -122,32 +125,34 @@ nested:
 				if hashComp > 0 {
 					refNode.Blocks().Update(i, []*Block{contentBlock}, 0) // insert the block in the right place
 					inserted = true
-					break nested
 				} else if hashComp == 0 {
 					fmt.Println("[ERROR] SAME EVENT VECTOR CLOCK!")
 					return false
 				} else {
 					if i == len-1 {
+
 						nextBlock := nextNode.Blocks().Get(0)
 						compare, err := nextBlock.Compare(contentBlock)
 						if err != nil {
 							return false
 						}
 						if compare == -1 || (compare == 0 && nextBlock.CompareHashes(contentBlock) > 0) {
-							break nested
+							inserted = true
 						}
+
 					}
 				}
 			case -1: // already known event
 				refNode.Blocks().Update(i, []*Block{contentBlock}, 0)
 				inserted = true
-				break nested
 			case 1: // gap in events
 				fmt.Println("[ERROR] NON-POSSIBLE EVENT ORDER")
 
 				return false
 			}
-
+			if inserted {
+				break
+			}
 		}
 		i = 0
 
@@ -156,7 +161,20 @@ nested:
 	if !inserted { // inserting in the last node
 		refNode.Blocks().Update(refNode.Blocks().Len(), []*Block{contentBlock}, 0)
 	}
+	updateWeight(refNode, contentBlock.Len())
 	return true
+}
+func updateWeight(node RopeNode, diff int) {
+
+	if node == nil || node.Parent() == nil {
+		return
+	}
+	parent := node.Parent().(*InnerNode)
+	if isLeftChild(node) {
+		parent.SetLeftWeight(parent.LeftWeight() + diff)
+	}
+	parent.SetWeight(parent.Weight() + diff)
+	updateWeight(parent, diff)
 }
 func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *vectorClock.ClockOffset, startIndex int) (node *LeafNode, block *Block, localIndex int, blockIndex int) { // not tested
 	node, idx := r.Find(startIndex)
@@ -167,19 +185,20 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *vectorC
 	if block == nil {
 		return node, nil, 0, 0
 	}
-	for !(block.HasVectorClock(clockOffset.VectorClock()) && (block.ContainsOffset(clockOffset.Offset())) || clockOffset.Offset() == block.Len()) {
-		block = node.Blocks().Get(blkLocalIdx)
-		if block == nil {
-			node = r.nextLeaf(node)
-			if node == nil {
-				return nil, nil, 0, 0 /// no blocks found
+	i := blockIndex
+	len := node.Blocks().Len()
+	for node != nil {
+		for ; i < len; i++ {
+			if block.HasVectorClock(clockOffset.VectorClock()) && (block.ContainsOffset(clockOffset.Offset()) || block.Len() == clockOffset.Offset()) {
+				return node, block, clockOffset.Offset() - block.Offset(), blkLocalIdx // get relative index within the block
 			}
-			blkLocalIdx = 0
-		} else {
-			blkLocalIdx++
 		}
+		node = r.nextLeaf(node)
+		i = 0
+		len = node.Blocks().Len()
 	}
-	return node, block, clockOffset.Offset() - block.Offset(), blkLocalIdx // get relative index within the block
+	return nil, nil, 0, 0
+
 }
 
 func (r *Rope) FindBlockFromIndex(position int) (*Block, int, int) {
@@ -246,4 +265,28 @@ func replaceChild(parent, currentChild, newChild RopeNode) {
 	} else {
 		parent.SetRight(newChild)
 	}
+}
+func (r *Rope) PrintRope(addDeleted bool) {
+	for queue := []RopeNode{r.Root()}; len(queue) > 0; {
+		size := len(queue)
+		for i := 0; i < size; i++ {
+			node := queue[0]
+			switch castedNode := node.(type) {
+			case *LeafNode:
+				fmt.Printf(" %v|<%v> ", castedNode.Weight(), castedNode.Blocks().String(addDeleted))
+			case *InnerNode:
+				fmt.Printf(" %v|%v ", castedNode.LeftWeight(), castedNode.Weight())
+
+			}
+			queue = queue[1:]
+			if node.Left() != nil {
+				queue = append(queue, node.Left())
+			}
+			if node.Right() != nil {
+				queue = append(queue, node.Right())
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
 }

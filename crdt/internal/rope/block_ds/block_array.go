@@ -2,6 +2,7 @@ package block_ds
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 )
@@ -51,6 +52,9 @@ func (b *BlockArray) Find(index int) (block *Block, localIndex int, blockIndex i
 	return nil, 0, len(b.blocks)
 }
 func (b *BlockArray) Get(blockIndex int) *Block {
+	if blockIndex < 0 || blockIndex >= b.Len() {
+		return nil
+	}
 	return b.blocks[blockIndex]
 }
 func (b *BlockArray) NextBlock(blockIndex int) *Block {
@@ -93,4 +97,19 @@ func (b *BlockArray) append(blocks []*Block) error {
 	}
 	b.size += addedLen
 	return nil
+}
+func (b *BlockArray) String(addDeleted bool) string {
+	result := strings.Builder{}
+	for _, blk := range b.blocks {
+		if addDeleted {
+			if !blk.IsDeleted() {
+				result.WriteString(blk.String())
+				result.WriteString(",")
+			}
+		} else {
+			result.WriteString(blk.String())
+			result.WriteString(",")
+		}
+	}
+	return result.String()[0 : result.Len()-1]
 }

@@ -1,7 +1,6 @@
 package block
 
 import (
-
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )
@@ -29,8 +28,10 @@ func (c *Block) Len() int {
 	return c.content.Len()
 }
 func (c *Block) Split(index int) (*Block, *Block) {
+	if index == 0 {
+		return nil, c
+	}
 	leftContent, rightContent := c.content.SplitTo(index), c.content.SplitFrom(index)
-
 	return NewBlock(c.clockOffset.Copy(), leftContent.String(), c.blockType, c.deleted), NewBlock(NewClockOffset(c.clockOffset.VectorClock().Copy(), index), rightContent.String(), c.blockType, c.deleted)
 }
 
