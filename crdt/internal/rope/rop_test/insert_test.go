@@ -28,9 +28,9 @@ func TestInsert(t *testing.T) {
 	t.Run("Limited Insert testing", func(t *testing.T) {
 		rope := NewRope(64, 0.75, 0.65, "ropeBuffer", "blockArray", "A")
 
-		firstBlockOffset := NewClockOffset(VectorClock{"A": 1}, 0)
+		firstBlockOffset := NewClockOffset(VectorClock{}, 0)
 		startIndex := 0
-		newBlock := NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 1}, 0), "ABC", "ropeBuffer", false)
+		newBlock := NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "ABC", "ropeBuffer", false)
 		rope.Insert(newBlock, firstBlockOffset, startIndex)
 		got := rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(0)
 		if !reflect.DeepEqual(got, newBlock) {
@@ -40,24 +40,44 @@ func TestInsert(t *testing.T) {
 	t.Run("Multiple insertions", func(t *testing.T) {
 		rope := NewRope(64, 0.75, 0.65, "ropeBuffer", "blockArray", "A")
 
-		blockOffset := NewClockOffset(VectorClock{"A": 1}, 0)
+		blockOffset := NewClockOffset(VectorClock{}, 0)
 		startIndex := 0
 		newBlock := NewBlock(NewClockOffset(VectorClock{"B": 1}, 0), "ABC", "ropeBuffer", false)
 		rope.Insert(newBlock, blockOffset, startIndex)
 		got := rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(0)
 		Assert(t, got, newBlock)
 
-		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "D", "ropeBuffer", false)
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 1}, 0), "D", "ropeBuffer", false)
 		blockOffset = NewClockOffset(VectorClock{"B": 1}, 3)
 		rope.Insert(newBlock, blockOffset, startIndex)
 		got = rope.Root().Left().(*LeafNode).Blocks().(*BlockArray).Get(1)
 		Assert(t, got, newBlock)
 		rope.PrintRope(false)
 
-		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2, "C": 1}, 0), "F", "ropeBuffer", false)
-		blockOffset = NewClockOffset(VectorClock{"A": 1}, 2)
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 0, "B": 1, "C": 1}, 0), "F", "ropeBuffer", false)
+		blockOffset = NewClockOffset(VectorClock{}, 2)
 		rope.Insert(newBlock, blockOffset, startIndex)
 		got = rope.Root().Right().(*LeafNode).Blocks().Get(1)
+		Assert(t, got, newBlock)
+		rope.PrintRope(false)
+
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 0, "B": 1, "C": 2}, 0), "G", "ropeBuffer", false)
+		blockOffset = NewClockOffset(VectorClock{}, 2)
+		rope.Insert(newBlock, blockOffset, startIndex)
+		got = rope.Root().Right().(*LeafNode).Blocks().Get(1)
+		Assert(t, got, newBlock)
+		rope.PrintRope(false)
+
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "H", "ropeBuffer", false)
+		blockOffset = NewClockOffset(VectorClock{}, 2)
+		rope.Insert(newBlock, blockOffset, startIndex)
+		got = rope.Root().Right().(*LeafNode).Blocks().Get(2)
+		Assert(t, got, newBlock)
+		rope.PrintRope(false)
+			newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "H", "ropeBuffer", false)
+		blockOffset = NewClockOffset(VectorClock{}, 2)
+		rope.Insert(newBlock, blockOffset, startIndex)
+		got = rope.Root().Right().(*LeafNode).Blocks().Get(2)
 		Assert(t, got, newBlock)
 		rope.PrintRope(false)
 	})

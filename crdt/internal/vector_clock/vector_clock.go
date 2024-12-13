@@ -8,6 +8,9 @@ import (
 type VectorClock map[string]int
 
 func NewVectorClock(replicaID string) VectorClock {
+	if (replicaID==""){
+		return VectorClock{}
+	}
 	return VectorClock{replicaID: 1}
 }
 func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
