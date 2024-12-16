@@ -1,5 +1,4 @@
 package event
-
 import (
 	vc "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )

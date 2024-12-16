@@ -13,6 +13,7 @@ type RopeNode interface {
 	SetLeft(node RopeNode)
 	SetParent(node RopeNode)
 	SetWeight(w int)
+	// String(addDeleted bool,blockSeparator string) string
 }
 
 type Node struct {
@@ -77,6 +78,9 @@ func (r *LeafNode) Weight() int {
 	return r.blocks.Size()
 }
 
+func (r *LeafNode) String(addDeleted bool, blockSeparator string) string {
+	return r.blocks.String(addDeleted, blockSeparator)
+}
 func NewInnerNode(leftWeight, weight int, left, right, parent RopeNode) *InnerNode {
 	return &InnerNode{
 		leftWeight,

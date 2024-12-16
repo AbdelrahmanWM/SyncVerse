@@ -1,6 +1,7 @@
 package rope_test
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 
@@ -71,17 +72,87 @@ func TestInsert(t *testing.T) {
 		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "H", "ropeBuffer", false)
 		blockOffset = NewClockOffset(VectorClock{}, 2)
 		rope.Insert(newBlock, blockOffset, startIndex)
-		got = rope.Root().Right().(*LeafNode).Blocks().Get(2)
+		got = rope.Root().Right().(*LeafNode).Blocks().Get(3)
 		Assert(t, got, newBlock)
 		rope.PrintRope(false)
-			newBlock = NewBlock(NewClockOffset(VectorClock{"A": 1, "B": 2}, 0), "H", "ropeBuffer", false)
+
+		newBlock = NewBlock(NewClockOffset(VectorClock{"A": 0, "B": 0, "D": 1}, 0), "E", "ropeBuffer", false)
 		blockOffset = NewClockOffset(VectorClock{}, 2)
 		rope.Insert(newBlock, blockOffset, startIndex)
-		got = rope.Root().Right().(*LeafNode).Blocks().Get(2)
+		got = rope.Root().Right().(*LeafNode).Blocks().Get(1)
 		Assert(t, got, newBlock)
 		rope.PrintRope(false)
 	})
+	t.Run("Inserting in different orders (concurrent Insertions)", func(t *testing.T) {
+		rope := NewRope(64, 0.75, 0.65, "ropeBuffer", "blockArray", "A")
+		actions := []struct {
+			block       *Block
+			clockOffset *ClockOffset
+		}{
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"B": 1}, 0), "B", "ropeBuffer", false),
+				NewClockOffset(VectorClock{}, 1),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "A", "ropeBuffer", false),
+				NewClockOffset(VectorClock{}, 1),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"C": 1}, 0), "C", "ropeBuffer", false),
+				NewClockOffset(VectorClock{}, 1),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"F": 1}, 0), "F", "ropeBuffer", false),
+
+				NewClockOffset(VectorClock{}, 2),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"G": 1}, 0), "G", "ropeBuffer", false),
+				NewClockOffset(VectorClock{}, 2),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"H": 1}, 0), "H", "ropeBuffer", false),
+
+				NewClockOffset(VectorClock{}, 2),
+			},
+			{
+
+				NewBlock(NewClockOffset(VectorClock{"E": 1}, 0), "E", "ropeBuffer", false),
+				NewClockOffset(VectorClock{}, 2),
+			},
+		}
+		rand.Shuffle(len(actions), func(i, j int) {
+			actions[i], actions[j] = actions[j], actions[i]
+		})
+
+		for _, action := range actions {
+			rope.Insert(action.block, action.clockOffset, 0)
+		}
+		want := " ABC EFGH"
+		got := rope.String(false)
+		if got != want {
+			t.Errorf("expected %v, got %v", want, got)
+		}
+
+	})
+	t.Run("test insertion node split", func(t *testing.T) {
+		rope := NewRope(10, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
+		block := NewBlock(NewClockOffset(VectorClock{"C": 1}, 0), "0123456789ABCDEF", "ropeBuffer", false)
+		clock := NewClockOffset(VectorClock{}, 1)
+		rope.Insert(block, clock, 0)
+		// if rope.Root().Right().Right()
+		rope.PrintRope(false)
+		t.Fail()
+
+	})
 }
+
 func Assert(t *testing.T, got, want *Block) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {

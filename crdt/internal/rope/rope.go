@@ -2,6 +2,7 @@ package rope
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
@@ -167,10 +168,12 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *vectorClock.ClockOffset,
 	}
 
 	if !inserted { // inserting in the last node
-		fmt.Println("6\n")
 		refNode.Blocks().Update(refNode.Blocks().Len(), []*Block{contentBlock}, 0)
 	}
+	// post insertion updates
 	updateWeight(refNode, contentBlock.Len())
+
+	r.split(refNode)
 	return true
 }
 func updateWeight(node RopeNode, diff int) {
@@ -190,7 +193,7 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *vectorC
 	if node == nil {
 		return nil, nil, 0, 0
 	}
-	block, blkLocalIdx, blockIndex := r.FindBlockFromNode(node, idx)
+	block, _, blockIndex = r.FindBlockFromNode(node, idx)
 	if block == nil {
 		return node, nil, 0, 0
 	}
@@ -200,7 +203,7 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *vectorC
 		for ; i < len; i++ {
 			block = node.Blocks().Get(i)
 			if block.HasVectorClock(clockOffset.VectorClock()) && (block.ContainsOffset(clockOffset.Offset()) || block.Len()+block.Offset() == clockOffset.Offset()) {
-				return node, block, clockOffset.Offset(), blkLocalIdx // get relative index within the block
+				return node, block, clockOffset.Offset(), i // get relative index within the block
 			}
 		}
 		node = r.nextLeaf(node)
@@ -283,7 +286,7 @@ func (r *Rope) PrintRope(addDeleted bool) {
 			node := queue[0]
 			switch castedNode := node.(type) {
 			case *LeafNode:
-				fmt.Printf(" %v|<%v> ", castedNode.Weight(), castedNode.Blocks().String(addDeleted))
+				fmt.Printf(" %v|<%v> ", castedNode.Weight(), castedNode.Blocks().String(addDeleted, ","))
 			case *InnerNode:
 				fmt.Printf(" %v|%v ", castedNode.LeftWeight(), castedNode.Weight())
 
@@ -299,4 +302,42 @@ func (r *Rope) PrintRope(addDeleted bool) {
 		fmt.Println()
 	}
 	fmt.Println()
+}
+func (r *Rope) String(addDeleted bool) string {
+	result := strings.Builder{}
+	for queue := []RopeNode{r.Root()}; len(queue) > 0; {
+		size := len(queue)
+		for i := 0; i < size; i++ {
+			node := queue[0]
+			switch castedNode := node.(type) {
+			case *LeafNode:
+				result.WriteString(castedNode.String(addDeleted, ""))
+			}
+			queue = queue[1:]
+			if node.Left() != nil {
+				queue = append(queue, node.Left())
+			}
+			if node.Right() != nil {
+				queue = append(queue, node.Right())
+			}
+		}
+	}
+	return result.String()
+}
+func (r *Rope) split(curNode *LeafNode) {
+	if curNode == nil {
+		return
+	}
+	if curNode.Blocks().Size() > r.splitSize {
+		middle := curNode.Blocks().Size() / 2
+		leftBlkDS, rightBlkDS := curNode.Blocks().Split(middle)
+		leftNode := NewLeafNode(leftBlkDS, nil)
+		newParent := NewInnerNode(middle, curNode.Weight(), leftNode, curNode, curNode.Parent())
+		replaceChild(curNode.Parent(), curNode, newParent)
+		curNode.SetBlocks(rightBlkDS)
+		leftNode.SetParent(newParent)
+		curNode.SetParent(newParent)
+		r.split(leftNode)
+		r.split(curNode)
+	}
 }

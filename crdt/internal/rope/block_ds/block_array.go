@@ -98,18 +98,23 @@ func (b *BlockArray) append(blocks []*Block) error {
 	b.size += addedLen
 	return nil
 }
-func (b *BlockArray) String(addDeleted bool) string {
+func (b *BlockArray) String(addDeleted bool, blockSeparator string) string {
 	result := strings.Builder{}
 	for _, blk := range b.blocks {
 		if addDeleted {
 			if !blk.IsDeleted() {
 				result.WriteString(blk.String())
-				result.WriteString(",")
+				result.WriteString(blockSeparator)
 			}
 		} else {
 			result.WriteString(blk.String())
-			result.WriteString(",")
+			result.WriteString(blockSeparator)
 		}
 	}
-	return result.String()[0 : result.Len()-1]
+	return result.String()[0 : result.Len()-len(blockSeparator)]
+}
+func (b *BlockArray) Split(index int) (BlockDS, BlockDS) { // add tolerance later for efficiency
+	block, localIndex, blockIndex := b.Find(index)
+	left, right := block.Split(localIndex)
+	return NewBlockArray(append(b.blocks[0:blockIndex], left)), NewBlockArray(append([]*Block{right}, b.blocks[blockIndex+1:b.Len()]...))
 }
