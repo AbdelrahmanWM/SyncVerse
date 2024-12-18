@@ -44,6 +44,9 @@ func (c *Block) IsDeleted() bool {
 func (c *Block) Compare(b *Block) (int, error) {
 	return c.clockOffset.Compare(b.clockOffset), nil
 }
+func (c *Block) ClockOffset()*ClockOffset{
+	return c.clockOffset
+}
 
 func (c *Block) Offset() int {
 	return c.clockOffset.Offset()

@@ -17,19 +17,21 @@ func (c *ClockOffset) Copy() *ClockOffset {
 		offset:      c.offset,
 	}
 }
-
+func (c *ClockOffset) Equals(c2 *ClockOffset) bool {
+	return c.vectorClock.Equals(c2.vectorClock) && c.offset == c2.offset
+}
 func (c *ClockOffset) Offset() int {
 	return c.offset
 }
 func (c *ClockOffset) VectorClock() VectorClock {
 	return c.vectorClock
 }
-func (c *ClockOffset) Compare (co *ClockOffset)int{
+func (c *ClockOffset) Compare(co *ClockOffset) int {
 	return c.vectorClock.Compare(co.vectorClock)
 }
-func (c *ClockOffset) Merge (co *ClockOffset) *ClockOffset{
-	return NewClockOffset(c.vectorClock.Merge(co.vectorClock),0);
+func (c *ClockOffset) Merge(co *ClockOffset) *ClockOffset {
+	return NewClockOffset(c.vectorClock.Merge(co.vectorClock), 0)
 }
-func (c *ClockOffset)CompareHashes(c2 *ClockOffset)int{
-	return c.vectorClock.CompareHashes(c2.vectorClock);
+func (c *ClockOffset) CompareHashes(c2 *ClockOffset) int {
+	return c.vectorClock.CompareHashes(c2.vectorClock)
 }

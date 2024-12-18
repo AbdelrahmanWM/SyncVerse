@@ -141,19 +141,18 @@ func TestInsert(t *testing.T) {
 		}
 
 	})
-	t.Run("test insertion node split", func(t *testing.T) {
+	t.Run("test insertion node split", func(t *testing.T) { //temp
 		rope := NewRope(10, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
 		block := NewBlock(NewClockOffset(VectorClock{"C": 1}, 0), "0123456789ABCDEF", "ropeBuffer", false)
 		clock := NewClockOffset(VectorClock{}, 1)
 		rope.Insert(block, clock, 0)
 		// if rope.Root().Right().Right()
 		rope.PrintRope(false)
-		t.Fail()
 
 	})
 }
 
-func Assert(t *testing.T, got, want *Block) {
+func Assert(t *testing.T, got, want any) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("expected %v, got %v", want, got)

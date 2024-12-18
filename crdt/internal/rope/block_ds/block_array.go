@@ -101,7 +101,7 @@ func (b *BlockArray) append(blocks []*Block) error {
 func (b *BlockArray) String(addDeleted bool, blockSeparator string) string {
 	result := strings.Builder{}
 	for _, blk := range b.blocks {
-		if addDeleted {
+		if !addDeleted {
 			if !blk.IsDeleted() {
 				result.WriteString(blk.String())
 				result.WriteString(blockSeparator)
