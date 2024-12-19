@@ -24,7 +24,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []DeleteMetadata{
+		toBeDeleted := []ModifyMetadata{
 			{
 				NewClockOffset(VectorClock{"A": 0}, 0),
 				[2]int{0, 1},
@@ -47,7 +47,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []DeleteMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 2}, 0),
 				[2]int{0, 1},
@@ -71,14 +71,14 @@ func TestDelete(t *testing.T) {
 
 		Assert(t, got, want)
 	})
-	t.Run("deleted part of a block", func(t *testing.T) {
+	t.Run("delete part of a block", func(t *testing.T) {
 
 		rope := NewRope(50, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
 		rope.Insert(
 			NewBlock(NewClockOffset(VectorClock{"A": 0}, 0),
 				"This is Not Deleted", "ropeBuffer", false),
 			NewClockOffset(VectorClock{}, 1), 0)
-		toBeDeleted := []DeleteMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 0}, 0),
 				[2]int{8, 12},
@@ -90,4 +90,14 @@ func TestDelete(t *testing.T) {
 		got := rope.String(false)
 		Assert(t, got, want)
 	})
+	t.Run("delete a divided block", func(t *testing.T) {
+		rope := NewRope(50, 0.7, 0.65, "ropeBuffer", "blockArray", "A")
+		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", "ropeBuffer", false), NewClockOffset(VectorClock{}, 1), 0)
+		rope.PrintRope(false)
+		rope.Delete([]ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
+		want := "|"
+		got := rope.String(false)
+		Assert(t, got, want)
+	})
+
 }

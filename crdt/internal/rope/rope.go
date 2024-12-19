@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/action"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
+	format "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/format"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
-	// event "github.com/AbdelrahmanWM/SyncVerse/crdt/Event"
 )
 
 type Rope struct {
@@ -21,7 +22,7 @@ type Rope struct {
 	size        int
 	replicaID   string
 }
-type DeleteMetadata struct {
+type ModifyMetadata struct {
 	ClockOffset *ClockOffset
 	Rng         [2]int
 }
@@ -180,7 +181,10 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	r.split(refNode)
 	return true
 }
-func (r *Rope) Delete(blocksMetadata []DeleteMetadata, searchStartIndex int) bool {
+func (r *Rope) Delete(blocksMetadata []ModifyMetadata, startIndex int) bool {
+	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
+}
+func (r *Rope) Modify(blocksMetadata []ModifyMetadata, format format.Format, searchStartIndex int) bool {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
 		return true
@@ -208,20 +212,28 @@ func (r *Rope) Delete(blocksMetadata []DeleteMetadata, searchStartIndex int) boo
 				} else {
 					curIdx++
 				}
-				var leftBlk, toBeDeleted, rightBlk *Block = nil, block, nil
+				var leftBlk, toBeModified, rightBlk *Block = nil, block, nil
 				if startIndex > 0 {
-					leftBlk, toBeDeleted = block.Split(startIndex)
+					leftBlk, toBeModified = block.Split(startIndex)
 				}
 
 				if endIndex < block.Len() {
-					toBeDeleted, rightBlk = toBeDeleted.Split(endIndex - startIndex)
+					toBeModified, rightBlk = toBeModified.Split(endIndex - startIndex)
 				}
 				blocks := []*Block{}
 				if leftBlk != nil {
 					blocks = append(blocks, leftBlk)
 				}
-				toBeDeleted.Delete()
-				blocks = append(blocks, toBeDeleted)
+				if format.Kind == action.Delete {
+					toBeModified.Delete()
+				} else {
+					if format.Metadata == "del" {
+						toBeModified.RemoveFormatting(format)
+					} else {
+						toBeModified.AddFormatting(format)
+					}
+				}
+				blocks = append(blocks, toBeModified)
 				if rightBlk != nil {
 					blocks = append(blocks, rightBlk)
 				}
@@ -241,7 +253,7 @@ func (r *Rope) Delete(blocksMetadata []DeleteMetadata, searchStartIndex int) boo
 	if curIdx == blocksLength {
 		return true
 	} else if curIdx > 0 {
-		fmt.Println("[ERROR] not all blocks where deleted")
+		fmt.Println("[ERROR] not all blocks where modified")
 	}
 	return false
 

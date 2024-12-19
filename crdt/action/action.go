@@ -2,6 +2,7 @@ package action
 
 type Action struct {
 	Kind    ActionCode
+	Metadata string
 	By      string
 	index   int
 	content string
@@ -12,9 +13,17 @@ type ActionCode int
 const (
 	Insert ActionCode = iota
 	Delete
-	Update
+	MainHeading
+	SubHeading
+	SubSubHeading
+	Bold
+	Italic
+	BulletPoint
+	Link
+	Color
+	BackgroundColor
 )
 
-func NewAction(kind ActionCode, by string, index int, content string) *Action {
-	return &Action{kind, by, index, content}
+func NewAction(kind ActionCode, metadata string, by string, index int, content string) *Action {
+	return &Action{kind,metadata, by, index, content}
 }
