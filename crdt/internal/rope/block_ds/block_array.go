@@ -113,8 +113,28 @@ func (b *BlockArray) String(addDeleted bool, blockSeparator string) string {
 	}
 	return result.String()[0 : result.Len()-len(blockSeparator)]
 }
-func (b *BlockArray) Split(index int) (BlockDS, BlockDS) { // add tolerance later for efficiency
+func (b *BlockArray) Split(index int, tolerance int) (BlockDS, BlockDS) { // add tolerance later for efficiency
 	block, localIndex, blockIndex := b.Find(index)
+	leftLength := localIndex - 0
+	rightLength := block.Len() - localIndex - 1
+	if tolerance > leftLength || tolerance > rightLength {
+		if rightLength < leftLength && blockIndex < b.Len() {
+			blockIndex++
+		}
+		return NewBlockArray(b.blocks[0:blockIndex]), NewBlockArray(b.blocks[blockIndex:b.Len()])
+	}
+
 	left, right := block.Split(localIndex)
-	return NewBlockArray(append(b.blocks[0:blockIndex], left)), NewBlockArray(append([]*Block{right}, b.blocks[blockIndex+1:b.Len()]...))
+	leftBlocks := b.blocks[0:blockIndex]
+	if left != nil {
+		leftBlocks = append(leftBlocks, left)
+	}
+	rightBlocks := []*Block{}
+	if blockIndex+1 < b.Len() {
+		rightBlocks = b.blocks[blockIndex+1 : b.Len()]
+	}
+	if right != nil {
+		rightBlocks = append([]*Block{right}, rightBlocks...)
+	}
+	return NewBlockArray(leftBlocks), NewBlockArray(rightBlocks)
 }

@@ -15,7 +15,7 @@ type BlockDS interface {
 	NextBlock(blockIndex int) *Block
 	Update(index int, blocks []*Block, numberOfDeletedBlocks int) error
 	String(showDeleted bool, blockSeparator string) string
-	Split(index int)(BlockDS,BlockDS)
+	Split(index int,tolerance int)(BlockDS,BlockDS)
 }
 
 func NewBlockDS(typename string, blocks []*Block) BlockDS {

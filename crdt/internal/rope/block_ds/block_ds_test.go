@@ -75,7 +75,7 @@ func TestUpdate(t *testing.T) { // outdated
 		{
 			"adding in the middle",
 			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
-			1, 
+			1,
 			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false)},
 			0,
 			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 11},
@@ -99,5 +99,61 @@ func TestUpdate(t *testing.T) { // outdated
 				t.Errorf("expected %v, got %v", ts.want, ts.target)
 			}
 		})
+	}
+}
+func TestSplit(t *testing.T) {
+	testCases := []struct {
+		blockArray BlockArray
+		splitIndex int
+		tolerance  int
+		Left       string
+		Right      string
+	}{
+		{
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			2,
+			1,
+			"123",
+			"456",
+		},
+		{
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			2,
+			0,
+			"12",
+			"3456",
+		},
+		{
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			4,
+			3,
+			"123",
+			"456",
+		},
+		{
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			5,
+			2,
+			"123456",
+			"",
+		},
+		{
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "12345", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "6789A", "ropeBuffer", false)}, 10},
+			7,
+			2,
+			"1234567",
+			"89A",
+		},
+	}
+	for i, ts := range testCases {
+		want1, want2 := ts.Left, ts.Right
+		got1B, got2B := ts.blockArray.Split(ts.splitIndex, ts.tolerance)
+		got1, got2 := got1B.String(false, ""), got2B.String(false, "")
+		if !reflect.DeepEqual(want1, got1) {
+			t.Errorf("%d [LEFT] expected %v, got %v", i, want1, got1)
+		}
+		if !reflect.DeepEqual(want2, got2) {
+			t.Errorf("[Right] expected %v, got %v", want2, got2)
+		}
 	}
 }
