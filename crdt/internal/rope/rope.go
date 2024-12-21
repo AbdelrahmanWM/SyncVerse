@@ -260,7 +260,7 @@ func (r *Rope) Modify(blocksMetadata []ModifyMetadata, format format.Format, sea
 }
 func updateWeight(node RopeNode, diff int) {
 
-	if node == nil || node.Parent() == nil {
+	if node == nil || node.Parent() == nil || diff == 0 {
 		return
 	}
 	parent := node.Parent().(*InnerNode)
@@ -315,52 +315,6 @@ func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (block *Block, local
 	return block, bIndex, blkIndex
 }
 
-func (r *Rope) nextLeaf(leafNode *LeafNode) *LeafNode {
-	if leafNode == nil {
-		return nil
-	}
-
-	var ptr RopeNode
-	ptr = leafNode
-
-	for isRightChild(ptr) {
-		ptr = ptr.Parent()
-	}
-	if ptr == nil {
-		return nil
-	}
-	ptr = ptr.Parent()
-	if ptr == nil {
-		return nil
-	}
-	ptr = ptr.Right()
-	for _, ok := ptr.(*LeafNode); ptr != nil && !ok; _, ok = ptr.(*LeafNode) {
-		ptr = ptr.Left()
-	}
-	return ptr.(*LeafNode)
-}
-func isRightChild(childNode RopeNode) bool {
-	parent := childNode.Parent()
-	if parent == nil {
-		return false
-	}
-	return childNode.Parent().Right() == childNode
-}
-
-func isLeftChild(childNode RopeNode) bool {
-	parent := childNode.Parent()
-	if parent == nil {
-		return false
-	}
-	return childNode.Parent().Left() == childNode
-}
-func replaceChild(parent, currentChild, newChild RopeNode) {
-	if parent.Left() == currentChild {
-		parent.SetLeft(newChild)
-	} else {
-		parent.SetRight(newChild)
-	}
-}
 func (r *Rope) PrintRope(addDeleted bool) {
 	for queue := []RopeNode{r.Root()}; len(queue) > 0; {
 		size := len(queue)
@@ -406,13 +360,62 @@ func (r *Rope) String(addDeleted bool) string {
 	}
 	return result.String()
 }
+
+func (r *Rope) BalanceLeaves(direction Direction) {
+	var node *LeafNode
+	var next func(leafNode *LeafNode) *LeafNode
+	if direction == Right {
+		node = r.firstNode()
+		next = r.nextLeaf
+	} else {
+		node = r.lastNode()
+		next = r.prevLeaf
+	}
+	nextNode := next(node)
+	tolerance := int(0.1 * float64(r.chunkSize)) /// can be made an input to the rope in future if needed
+	for nextNode != nil {
+		nodeWeight := node.Weight()
+		nextNodeWeight := nextNode.Weight()
+		diff := nodeWeight - nextNodeWeight
+		if direction == Right {
+			if diff > tolerance {
+				leftBlkDS, rightBlkDS := node.Blocks().Split(nextNodeWeight+diff/2, tolerance)
+				node.SetBlocks(leftBlkDS)
+				nextNode.Blocks().Merge(rightBlkDS, true)
+
+			} else if diff < -tolerance {
+				leftBlkDS, rightBlkDS := nextNode.Blocks().Split(-diff/2, tolerance)
+				node.Blocks().Merge(leftBlkDS, false)
+				nextNode.SetBlocks(rightBlkDS)
+			}
+
+		} else {
+
+			if diff > tolerance {
+				leftBlkDS, rightBlkDS := node.Blocks().Split(diff/2, tolerance)
+				node.SetBlocks(rightBlkDS)
+				nextNode.Blocks().Merge(leftBlkDS, false)
+
+			} else if diff < -tolerance {
+				leftBlkDS, rightBlkDS := nextNode.Blocks().Split(nodeWeight-diff/2, tolerance)
+				node.Blocks().Merge(rightBlkDS, true)
+				nextNode.SetBlocks(leftBlkDS)
+			}
+		}
+
+		updateWeight(node, node.Weight()-nodeWeight)
+		updateWeight(nextNode, nextNode.Weight()-nextNodeWeight)
+		node = nextNode
+		nextNode = next(nextNode)
+	}
+}
 func (r *Rope) split(curNode *LeafNode) {
 	if curNode == nil {
 		return
 	}
 	if curNode.Blocks().Size() > r.splitSize {
 		middle := curNode.Blocks().Size() / 2
-		leftBlkDS, rightBlkDS := curNode.Blocks().Split(middle)
+		leftBlkDS, rightBlkDS := curNode.Blocks().Split(middle, 0)
 		leftNode := NewLeafNode(leftBlkDS, nil)
 		newParent := NewInnerNode(middle, curNode.Weight(), leftNode, curNode, curNode.Parent())
 		replaceChild(curNode.Parent(), curNode, newParent)
@@ -471,4 +474,88 @@ func (r *Rope) findBlocks(index int, length int) []struct {
 
 	}
 	return blocksMetadata
+}
+func (r *Rope) nextLeaf(leafNode *LeafNode) *LeafNode {
+	if leafNode == nil {
+		return nil
+	}
+
+	var ptr RopeNode
+	ptr = leafNode
+
+	for isRightChild(ptr) {
+		ptr = ptr.Parent()
+	}
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Parent()
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Right()
+	for _, ok := ptr.(*LeafNode); ptr != nil && !ok; _, ok = ptr.(*LeafNode) {
+		ptr = ptr.Left()
+	}
+	return ptr.(*LeafNode)
+}
+func (r *Rope) prevLeaf(leafNode *LeafNode) *LeafNode {
+	if leafNode == nil {
+		return nil
+	}
+
+	var ptr RopeNode
+	ptr = leafNode
+
+	for isLeftChild(ptr) {
+		ptr = ptr.Parent()
+	}
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Parent()
+	if ptr == nil {
+		return nil
+	}
+	ptr = ptr.Left()
+	for _, ok := ptr.(*LeafNode); ptr != nil && !ok; _, ok = ptr.(*LeafNode) {
+		ptr = ptr.Right()
+	}
+	return ptr.(*LeafNode)
+}
+func isRightChild(childNode RopeNode) bool {
+	parent := childNode.Parent()
+	if parent == nil {
+		return false
+	}
+	return childNode.Parent().Right() == childNode
+}
+
+func isLeftChild(childNode RopeNode) bool {
+	parent := childNode.Parent()
+	if parent == nil {
+		return false
+	}
+	return childNode.Parent().Left() == childNode
+}
+func replaceChild(parent, currentChild, newChild RopeNode) {
+	if parent.Left() == currentChild {
+		parent.SetLeft(newChild)
+	} else {
+		parent.SetRight(newChild)
+	}
+}
+func (r *Rope) firstNode() *LeafNode {
+	var ptr RopeNode = r.Root()
+	for ptr.Left() != nil {
+		ptr = ptr.Left()
+	}
+	return ptr.(*LeafNode)
+}
+func (r *Rope) lastNode() *LeafNode {
+	var ptr RopeNode = r.Root()
+	for ptr.Right() != nil {
+		ptr = ptr.Right()
+	}
+	return ptr.(*LeafNode)
 }

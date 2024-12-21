@@ -14,6 +14,7 @@ type BlockDS interface {
 	Get(blockIndex int) *Block
 	NextBlock(blockIndex int) *Block
 	Update(index int, blocks []*Block, numberOfDeletedBlocks int) error
+	Merge(blockds BlockDS,prepend bool)BlockDS
 	String(showDeleted bool, blockSeparator string) string
 	Split(index int,tolerance int)(BlockDS,BlockDS)
 }

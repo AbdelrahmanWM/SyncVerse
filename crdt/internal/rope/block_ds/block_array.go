@@ -117,7 +117,7 @@ func (b *BlockArray) Split(index int, tolerance int) (BlockDS, BlockDS) { // add
 	block, localIndex, blockIndex := b.Find(index)
 	leftLength := localIndex - 0
 	rightLength := block.Len() - localIndex - 1
-	if tolerance > leftLength || tolerance > rightLength {
+	if tolerance > leftLength || tolerance > rightLength { 
 		if rightLength < leftLength && blockIndex < b.Len() {
 			blockIndex++
 		}
@@ -137,4 +137,16 @@ func (b *BlockArray) Split(index int, tolerance int) (BlockDS, BlockDS) { // add
 		rightBlocks = append([]*Block{right}, rightBlocks...)
 	}
 	return NewBlockArray(leftBlocks), NewBlockArray(rightBlocks)
+}
+func (b *BlockArray) Merge(blockDs BlockDS, prepend bool) BlockDS {
+	index := b.Len()
+	if prepend {
+		index = 0
+	}
+	blockArray, ok := blockDs.(*BlockArray)
+	if !ok {
+		return nil
+	}
+	b.Update(index, blockArray.blocks, 0)
+	return b
 }
