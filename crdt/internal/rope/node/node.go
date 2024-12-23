@@ -23,7 +23,8 @@ type Node struct {
 	parent RopeNode
 }
 type InnerNode struct {
-	leftWeight int
+	leftWeight     int
+	realLeftWeight int
 	Node
 }
 type LeafNode struct {
@@ -65,6 +66,12 @@ func (r *InnerNode) LeftWeight() int {
 func (r *InnerNode) SetLeftWeight(w int) {
 	r.leftWeight = w
 }
+func (r *InnerNode) RealLeftWeight() int {
+	return r.realLeftWeight
+}
+func (r *InnerNode) SetRealLeftWeight(w int) {
+	r.realLeftWeight = w
+}
 
 // //////////////////////////////////////////////////
 func (r *LeafNode) Blocks() BlockDS {
@@ -81,9 +88,10 @@ func (r *LeafNode) Weight() int {
 func (r *LeafNode) String(addDeleted bool, blockSeparator string) string {
 	return r.blocks.String(addDeleted, blockSeparator)
 }
-func NewInnerNode(leftWeight, weight int, left, right, parent RopeNode) *InnerNode {
+func NewInnerNode(leftWeight, realLeftWeight, weight int, left, right, parent RopeNode) *InnerNode {
 	return &InnerNode{
 		leftWeight,
+		realLeftWeight,
 		*NewNode(weight, left, right, parent),
 	}
 }

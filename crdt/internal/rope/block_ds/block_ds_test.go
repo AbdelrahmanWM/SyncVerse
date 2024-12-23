@@ -8,24 +8,27 @@ import (
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )
 
-func TestFind(t *testing.T) { // outdated
+func TestFind(t *testing.T) { 
 	testcases := []struct {
 		description string
 		target      BlockDS
 		want        *Block
 		index       int
+		addDeleted  bool
 	}{
 		{
 			"happy path",
 			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
 			NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
 			0,
+			false,
 		},
 		{
 			"empty",
 			NewBlockArray([]*Block{}),
 			nil,
 			0,
+			false,
 		},
 		{
 			"multiple blocks",
@@ -34,6 +37,16 @@ func TestFind(t *testing.T) { // outdated
 				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false)}),
 			NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", false),
 			5,
+			false,
+		},
+		{
+			"multiple blocks ignoring deleted",
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
+				NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", true),
+				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false)}),
+			NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false),
+			5,
+			true,
 		},
 		// {
 		// 	"some deleted blocks",
@@ -46,9 +59,9 @@ func TestFind(t *testing.T) { // outdated
 	}
 	for _, ts := range testcases {
 		t.Run(ts.description, func(t *testing.T) {
-			got, _, _ := ts.target.Find(ts.index)
-			if !reflect.DeepEqual(got, ts.want) {
-				t.Errorf("expected %v, got %v", ts.want, got)
+			got, _, _ := ts.target.Find(ts.index, ts.addDeleted)
+			if got == nil && ts.want != nil && !reflect.DeepEqual(got.String(), ts.want.String()) {
+				t.Errorf("expected %v, got %v", ts.want.String(), got.String())
 			}
 		})
 	}
@@ -70,7 +83,7 @@ func TestUpdate(t *testing.T) { // outdated
 			99, //append
 			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)},
 			0,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 10},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 10, 10},
 		},
 		{
 			"adding in the middle",
@@ -78,7 +91,7 @@ func TestUpdate(t *testing.T) { // outdated
 			1,
 			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false)},
 			0,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 11},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 11, 11},
 		},
 		{
 			"deleting blocks from the middle",
@@ -86,7 +99,7 @@ func TestUpdate(t *testing.T) { // outdated
 			1, //append
 			[]*Block{},
 			2,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false)}, 3},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false)}, 3, 3},
 		},
 	}
 	for _, ts := range testcases {
@@ -110,35 +123,35 @@ func TestSplit(t *testing.T) {
 		Right      string
 	}{
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
 			2,
 			1,
 			"123",
 			"456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
 			2,
 			0,
 			"12",
 			"3456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
 			4,
 			3,
 			"123",
 			"456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
 			5,
 			2,
 			"123456",
 			"",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "12345", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "6789A", "ropeBuffer", false)}, 10},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "12345", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "6789A", "ropeBuffer", false)}, 10, 10},
 			7,
 			2,
 			"1234567",

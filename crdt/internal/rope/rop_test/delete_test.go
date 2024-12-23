@@ -84,8 +84,8 @@ func TestDelete(t *testing.T) {
 				[2]int{8, 12},
 			},
 		}
-		rope.PrintRope(false)
 		rope.Delete(toBeDeleted, 0)
+		rope.PrintRope(false)
 		want := " This is Deleted "
 		got := rope.String(false)
 		Assert(t, got, want)
@@ -93,10 +93,10 @@ func TestDelete(t *testing.T) {
 	t.Run("delete a divided block", func(t *testing.T) {
 		rope := NewRope(50, 0.7, 0.65, "ropeBuffer", "blockArray", "A")
 		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", "ropeBuffer", false), NewClockOffset(VectorClock{}, 1), 0)
-		rope.PrintRope(false)
 		rope.Delete([]ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
 		want := "|"
 		got := rope.String(false)
+		rope.PrintRope(false)
 		Assert(t, got, want)
 	})
 

@@ -19,7 +19,6 @@ type Rope struct {
 	mergeSize   int
 	ropeType    string
 	blockDSType string
-	size        int
 	replicaID   string
 }
 type ModifyMetadata struct {
@@ -32,7 +31,7 @@ type ModifyMetadata struct {
 Initializes a new rope with two empty leaf nodes
 */
 func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, blockDSType string, replicaID string) *Rope {
-	root := NewInnerNode(1, 2, nil, nil, nil)
+	root := NewInnerNode(1, 1, 2, nil, nil, nil)
 	leftBlocks := make([]*Block, 1, 10)
 
 	leftBlocks[0] = NewBlock(NewClockOffset(NewVectorClock(""), 0), " ", ropeType, false)
@@ -51,7 +50,6 @@ func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, rop
 		mergeSize,
 		ropeType,
 		blockDSType,
-		0,
 		replicaID,
 	}
 }
@@ -64,6 +62,9 @@ func (r *Rope) ReplicaID() string {
 func (r *Rope) Root() *InnerNode {
 	return r.root
 }
+func (r *Rope) Size() int {
+	return r.Root().Weight()
+}
 
 func (r *Rope) SetRoot(newRoot *InnerNode) {
 	r.root = newRoot
@@ -71,20 +72,30 @@ func (r *Rope) SetRoot(newRoot *InnerNode) {
 func (r *Rope) ChunkSize() int {
 	return r.chunkSize
 }
-func (r *Rope) Find(position int) (*LeafNode, int) {
+func (r *Rope) Find(position int, ignoreDeleted bool) (*LeafNode, int) {
 	var ptr RopeNode
 	ptr = r.Root()
-	if ptr.Weight() == 0 && position == 0 { // special case 0-index weight problem
+
+	if ptr.Weight() == 0 && position == 0 { // special case 0-index weight problem (may need to change)
 		return ptr.Left().(*LeafNode), 0
 	}
 	for ptr != nil {
 		switch p := ptr.(type) {
 		case *InnerNode:
-			if position >= p.LeftWeight() { // the equal is due to the 0-index
-				ptr = ptr.Right()
-				position -= p.LeftWeight()
+			if ignoreDeleted {
+				if position >= p.LeftWeight() { // the equal is due to the 0-index
+					ptr = ptr.Right()
+					position -= p.LeftWeight()
+				} else {
+					ptr = ptr.Left()
+				}
 			} else {
-				ptr = ptr.Left()
+				if position >= p.RealLeftWeight() { // the equal is due to the 0-index
+					ptr = ptr.Right()
+					position -= p.RealLeftWeight()
+				} else {
+					ptr = ptr.Left()
+				}
 			}
 		default:
 			return ptr.(*LeafNode), position
@@ -92,7 +103,7 @@ func (r *Rope) Find(position int) (*LeafNode, int) {
 	}
 	return nil, -1
 }
-func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex int) bool {
+func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex int) bool { //future fix: separate the localIndex from the clockOffset
 	curNode, block, localIdx, blockIdx := r.findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset, startIndex)
 	inserted := false
 
@@ -176,7 +187,7 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 		refNode.Blocks().Update(refNode.Blocks().Len(), []*Block{contentBlock}, 0)
 	}
 	// post insertion updates
-	updateWeight(refNode, contentBlock.Len())
+	updateWeight(refNode, contentBlock.Len(), 0)
 
 	r.split(refNode)
 	return true
@@ -226,6 +237,7 @@ func (r *Rope) Modify(blocksMetadata []ModifyMetadata, format format.Format, sea
 				}
 				if format.Kind == action.Delete {
 					toBeModified.Delete()
+					updateWeight(node, 0, toBeModified.Len()) ////
 				} else {
 					if format.Metadata == "del" {
 						toBeModified.RemoveFormatting(format)
@@ -258,20 +270,21 @@ func (r *Rope) Modify(blocksMetadata []ModifyMetadata, format format.Format, sea
 	return false
 
 }
-func updateWeight(node RopeNode, diff int) {
+func updateWeight(node RopeNode, diff int, deletedLength int) {
 
-	if node == nil || node.Parent() == nil || diff == 0 {
+	if node == nil || node.Parent() == nil || (diff == 0 && deletedLength == 0) {
 		return
 	}
 	parent := node.Parent().(*InnerNode)
 	if isLeftChild(node) {
 		parent.SetLeftWeight(parent.LeftWeight() + diff)
+		parent.SetRealLeftWeight(parent.RealLeftWeight() + diff - deletedLength) ///
 	}
 	parent.SetWeight(parent.Weight() + diff)
-	updateWeight(parent, diff)
+	updateWeight(parent, diff, deletedLength)
 }
 func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *ClockOffset, startIndex int) (node *LeafNode, block *Block, localIndex int, blockIndex int) { // not tested
-	node, idx := r.Find(startIndex)
+	node, idx := r.Find(startIndex, true)
 	if node == nil {
 		return nil, nil, 0, 0
 	}
@@ -293,22 +306,31 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *ClockOf
 		len = node.Blocks().Len()
 	}
 	return nil, nil, 0, 0
-
 }
 
-func (r *Rope) FindBlockFromIndex(position int) (*Block, int, int) {
-	node, index := r.Find(position)
-	if node == nil {
-		return nil, 0, 0
+func (r *Rope) findInsertionBlockOffset(insertionPosition int) (clockOffset *ClockOffset) {
+	if insertionPosition <= 0 { // for now, assuming the zero vector block won't be removed
+		return nil
 	}
-	block, bIndex, blkIndex := node.Blocks().Find(index)
-	if block == nil {
-		return nil, index, blkIndex // for a later use
+	insertionPosition-- // get the index of the block before
+
+	node, index := r.Find(insertionPosition, true)
+	if node == nil { // shouldn't happen
+		fmt.Errorf("%s", "[ERROR] node couldn't be located") //temp
+		return nil
 	}
-	return block, bIndex, node.Blocks().Len()
+	block, localIndex, _ := node.Blocks().Find(index, false)
+	if block == nil { // shouldn't happen
+		fmt.Errorf("%s", "[ERROR] block couldn't be located")
+		return nil
+	}
+
+	InsertionClockOffset := NewClockOffset(block.ClockOffset().VectorClock(), block.Offset()+localIndex+1) //after
+
+	return InsertionClockOffset
 }
 func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (block *Block, localIndex int, blockIndex int) {
-	block, bIndex, blkIndex := node.Blocks().Find(index)
+	block, bIndex, blkIndex := node.Blocks().Find(index, false)
 	if block == nil {
 		return nil, index, node.Blocks().Len() // for a later use
 	}
@@ -324,10 +346,14 @@ func (r *Rope) PrintRope(addDeleted bool) {
 			case *LeafNode:
 				fmt.Printf(" %v|<%v> ", castedNode.Weight(), castedNode.Blocks().String(addDeleted, ","))
 			case *InnerNode:
-				fmt.Printf(" %v|%v ", castedNode.LeftWeight(), castedNode.Weight())
+				fmt.Printf(" %v|%v|%v ", castedNode.RealLeftWeight(), castedNode.LeftWeight(), castedNode.Weight())
 
 			}
-			queue = queue[1:]
+			if len(queue) > 1 {
+				queue = queue[1:]
+			} else {
+				queue = []RopeNode{}
+			}
 			if node.Left() != nil {
 				queue = append(queue, node.Left())
 			}
@@ -403,8 +429,8 @@ func (r *Rope) BalanceLeaves(direction Direction) {
 			}
 		}
 
-		updateWeight(node, node.Weight()-nodeWeight)
-		updateWeight(nextNode, nextNode.Weight()-nextNodeWeight)
+		updateWeight(node, node.Weight()-nodeWeight, 0)
+		updateWeight(nextNode, nextNode.Weight()-nextNodeWeight, 0)
 		node = nextNode
 		nextNode = next(nextNode)
 	}
@@ -417,7 +443,7 @@ func (r *Rope) split(curNode *LeafNode) {
 		middle := curNode.Blocks().Size() / 2
 		leftBlkDS, rightBlkDS := curNode.Blocks().Split(middle, 0)
 		leftNode := NewLeafNode(leftBlkDS, nil)
-		newParent := NewInnerNode(middle, curNode.Weight(), leftNode, curNode, curNode.Parent())
+		newParent := NewInnerNode(middle, leftBlkDS.RealSize(), curNode.Weight(), leftNode, curNode, curNode.Parent()) ////////////// Size() not tested at all
 		replaceChild(curNode.Parent(), curNode, newParent)
 		curNode.SetBlocks(rightBlkDS)
 		leftNode.SetParent(newParent)
@@ -435,7 +461,7 @@ func (r *Rope) findBlocks(index int, length int) []struct {
 		rng         [2]int
 	}
 	done := false
-	node, localIndex := r.Find(index)
+	node, localIndex := r.Find(index, true)
 	blk, blkLocalIndex, blkStartIndex := r.FindBlockFromNode(node, localIndex)
 	if blk == nil {
 		return nil

@@ -1,8 +1,8 @@
 package data_structure
 
 import (
-	a "github.com/AbdelrahmanWM/SyncVerse/crdt/Action"
-	e "github.com/AbdelrahmanWM/SyncVerse/crdt/Event"
+	a "github.com/AbdelrahmanWM/SyncVerse/crdt/action"
+	e "github.com/AbdelrahmanWM/SyncVerse/crdt/event"
 )
 
 type CRDTDataStructure interface {
