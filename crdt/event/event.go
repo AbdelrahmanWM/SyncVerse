@@ -1,18 +1,25 @@
 package event
+
 import (
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/global"
 	vc "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )
 
 type Event struct {
-	kind        EventType
-	clockOffset *vc.ClockOffset
-	offset      int
-	content     string
+	Kind        EventType
+	UserID      global.UserID
+	ReplicaID   global.ReplicaID
+	vectorClock vc.VectorClock
+	Metadata    any
 }
 
-func NewEvent(kind EventType, vectorClock vc.VectorClock, offset int, content string) *Event {
-	return &Event{kind, vc.NewClockOffset(vectorClock, offset), offset, content}
+var EventMetadataRegistry map[EventType]EventMetadata = make(map[EventType]EventMetadata)
+
+func NewEvent(kind EventType, userID global.UserID, replicaID global.ReplicaID, vectorClock vc.VectorClock, metadata any) *Event {
+	return &Event{kind, userID, replicaID, vectorClock, metadata} // new event
 }
+
+type EventMetadata func(inputs ...any) any
 
 type EventType int
 
@@ -20,3 +27,19 @@ const (
 	Insert EventType = iota
 	Delete
 )
+
+func registryNewEventMetadata(eventType EventType, eventMetadata EventMetadata) bool {
+	_, ok := EventMetadataRegistry[eventType]
+	if ok || eventMetadata == nil {
+		return false
+	}
+	EventMetadataRegistry[eventType] = eventMetadata
+	return true
+}
+func initializeEventMetadataRegistry() {
+	registryNewEventMetadata(Insert, NewInsertionEventMetadata)
+	registryNewEventMetadata(Delete, NewDeletionEventMetadata)
+}
+func init() {
+	initializeEventMetadataRegistry()
+}

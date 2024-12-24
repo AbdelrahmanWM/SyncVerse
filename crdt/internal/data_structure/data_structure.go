@@ -1,11 +1,11 @@
 package data_structure
 
 import (
+	event "github.com/AbdelrahmanWM/SyncVerse/crdt/Event"
 	a "github.com/AbdelrahmanWM/SyncVerse/crdt/action"
-	e "github.com/AbdelrahmanWM/SyncVerse/crdt/event"
 )
 
 type CRDTDataStructure interface {
-	Apply(e e.Event) // checks the event type, and applies the needed action (Insert/Delete/Update/etc)
-	GetEvent(a a.Action) e.Event
+	Apply(e event.Event) // checks the event type, and applies the needed action (Insert/Delete/Update/etc)
+	GetEvent(a a.Action) event.Event
 }

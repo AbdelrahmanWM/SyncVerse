@@ -30,12 +30,17 @@ func CopyBlockValue(typename string, value BlockValue) BlockValue {
 	}
 	return nil
 }
-func RegisterNewRopeType(typename string, constructor func(string) BlockValue, copyConstructor func(BlockValue) BlockValue) {
+func registerNewRopeType(typename string, constructor func(string) BlockValue, copyConstructor func(BlockValue) BlockValue) bool {
+	_, ok := BlockValueRegistry[typename]
+	if ok || constructor == nil {
+		return false
+	}
 	BlockValueRegistry[typename] = constructors{constructor, copyConstructor}
+	return true
 }
 
 func RegisterRopeTypes() {
-	RegisterNewRopeType("ropeBuffer", NewRopeBuffer, CopyRopeBuffer)
+	registerNewRopeType("ropeBuffer", NewRopeBuffer, CopyRopeBuffer)
 }
 func init() {
 	RegisterRopeTypes()

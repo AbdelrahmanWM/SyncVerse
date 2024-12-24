@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/global"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 
@@ -24,7 +25,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []ModifyMetadata{
+		toBeDeleted := []global.ModifyMetadata{
 			{
 				NewClockOffset(VectorClock{"A": 0}, 0),
 				[2]int{0, 1},
@@ -47,7 +48,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 2}, 0),
 				[2]int{0, 1},
@@ -78,7 +79,7 @@ func TestDelete(t *testing.T) {
 			NewBlock(NewClockOffset(VectorClock{"A": 0}, 0),
 				"This is Not Deleted", "ropeBuffer", false),
 			NewClockOffset(VectorClock{}, 1), 0)
-		toBeDeleted := []ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 0}, 0),
 				[2]int{8, 12},
@@ -93,7 +94,8 @@ func TestDelete(t *testing.T) {
 	t.Run("delete a divided block", func(t *testing.T) {
 		rope := NewRope(50, 0.7, 0.65, "ropeBuffer", "blockArray", "A")
 		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", "ropeBuffer", false), NewClockOffset(VectorClock{}, 1), 0)
-		rope.Delete([]ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
+		rope.Delete([]global.ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
+
 		want := "|"
 		got := rope.String(false)
 		rope.PrintRope(false)
