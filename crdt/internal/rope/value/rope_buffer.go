@@ -7,7 +7,7 @@ import (
 type RopeBuffer []byte
 
 func (rp *RopeBuffer) Update(index int, newContent string, deletedLength int) (BlockValue, error) {
-	input := NewBlockValue("ropeBuffer", newContent)
+	input := NewBlockValue(ByteBuffer, newContent)
 	if index < 0 {
 		return NewRopeBuffer(""), fmt.Errorf("[ERROR] Invalid Index %d", index)
 	} else if index >= rp.Len() {

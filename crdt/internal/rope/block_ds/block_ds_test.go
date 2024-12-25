@@ -6,6 +6,7 @@ import (
 
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
+	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 )
 
 func TestFind(t *testing.T) { 
@@ -18,8 +19,8 @@ func TestFind(t *testing.T) {
 	}{
 		{
 			"happy path",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
-			NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}),
+			NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false),
 			0,
 			false,
 		},
@@ -32,28 +33,28 @@ func TestFind(t *testing.T) {
 		},
 		{
 			"multiple blocks",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
-				NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", false),
-				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false)}),
-			NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", false),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false),
+				NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", ByteBuffer, false),
+				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", ByteBuffer, false)}),
+			NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", ByteBuffer, false),
 			5,
 			false,
 		},
 		{
 			"multiple blocks ignoring deleted",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
-				NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", true),
-				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false)}),
-			NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false),
+				NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", ByteBuffer, true),
+				NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", ByteBuffer, false)}),
+			NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", ByteBuffer, false),
 			5,
 			true,
 		},
 		// {
 		// 	"some deleted blocks",
-		// 	NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false),
-		// 		NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", "ropeBuffer", true),
-		// 		NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false)}),
-		// 	NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", "ropeBuffer", false),
+		// 	NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false),
+		// 		NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "12345", ByteBuffer, true),
+		// 		NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", ByteBuffer, false)}),
+		// 	NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "#####", ByteBuffer, false),
 		// 	5,
 		// },
 	}
@@ -79,27 +80,27 @@ func TestUpdate(t *testing.T) { // outdated
 	}{
 		{
 			"appending a block",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}),
 			99, //append
-			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)},
+			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)},
 			0,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 10, 10},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}, 10, 10},
 		},
 		{
 			"adding in the middle",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}),
 			1,
-			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false)},
+			[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", ByteBuffer, false)},
 			0,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}, 11, 11},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}, 11, 11},
 		},
 		{
 			"deleting blocks from the middle",
-			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", "ropeBuffer", false)}),
+			NewBlockArray([]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "###", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "block", ByteBuffer, false)}),
 			1, //append
 			[]*Block{},
 			2,
-			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false)}, 3, 3},
+			&BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false)}, 3, 3},
 		},
 	}
 	for _, ts := range testcases {
@@ -123,35 +124,35 @@ func TestSplit(t *testing.T) {
 		Right      string
 	}{
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", ByteBuffer, false)}, 6, 6},
 			2,
 			1,
 			"123",
 			"456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", ByteBuffer, false)}, 6, 6},
 			2,
 			0,
 			"12",
 			"3456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", ByteBuffer, false)}, 6, 6},
 			4,
 			3,
 			"123",
 			"456",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", "ropeBuffer", false)}, 6, 6},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "456", ByteBuffer, false)}, 6, 6},
 			5,
 			2,
 			"123456",
 			"",
 		},
 		{
-			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "12345", "ropeBuffer", false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "6789A", "ropeBuffer", false)}, 10, 10},
+			BlockArray{[]*Block{NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "12345", ByteBuffer, false), NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "6789A", ByteBuffer, false)}, 10, 10},
 			7,
 			2,
 			"1234567",

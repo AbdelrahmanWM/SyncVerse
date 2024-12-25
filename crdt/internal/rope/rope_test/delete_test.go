@@ -7,6 +7,8 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/crdt/global"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 
 	// . "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 	// . "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
@@ -15,11 +17,11 @@ import (
 
 func TestDelete(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		rope := NewRope(10, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
+		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
 				NewBlock(NewClockOffset(VectorClock{"A": i}, 0),
-					fmt.Sprintf("%d", i), "ropeBuffer", false),
+					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
 		want := " 86420 97531"
@@ -38,11 +40,11 @@ func TestDelete(t *testing.T) {
 		Assert(t, got, want)
 	})
 	t.Run("Multiple deletions", func(t *testing.T) {
-		rope := NewRope(10, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
+		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
 				NewBlock(NewClockOffset(VectorClock{"A": i}, 0),
-					fmt.Sprintf("%d", i), "ropeBuffer", false),
+					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
 		want := " 86420 97531"
@@ -74,10 +76,10 @@ func TestDelete(t *testing.T) {
 	})
 	t.Run("delete part of a block", func(t *testing.T) {
 
-		rope := NewRope(50, 0.70, 0.65, "ropeBuffer", "blockArray", "A")
+		rope := NewRope(50, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		rope.Insert(
 			NewBlock(NewClockOffset(VectorClock{"A": 0}, 0),
-				"This is Not Deleted", "ropeBuffer", false),
+				"This is Not Deleted", value.ByteBuffer, false),
 			NewClockOffset(VectorClock{}, 1), 0)
 		toBeDeleted := []global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
@@ -92,8 +94,8 @@ func TestDelete(t *testing.T) {
 		Assert(t, got, want)
 	})
 	t.Run("delete a divided block", func(t *testing.T) {
-		rope := NewRope(50, 0.7, 0.65, "ropeBuffer", "blockArray", "A")
-		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", "ropeBuffer", false), NewClockOffset(VectorClock{}, 1), 0)
+		rope := NewRope(50, 0.7, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
+		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
 		rope.Delete([]global.ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
 
 		want := "|"

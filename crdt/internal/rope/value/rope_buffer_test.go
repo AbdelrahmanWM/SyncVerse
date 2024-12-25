@@ -9,7 +9,7 @@ import (
 func TestBlockValueUpdate(t *testing.T) {
 
 	t.Run("insert a BlockValue in the middle", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "h!")
+		rp := NewBlockValue(ByteBuffer, "h!")
 		content := "i"
 		want := "hi!"
 		rp.Update(1, content, 0)
@@ -19,7 +19,7 @@ func TestBlockValueUpdate(t *testing.T) {
 		}
 	})
 	t.Run("Appending a BlockValue", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "hi")
+		rp := NewBlockValue(ByteBuffer, "hi")
 		content := "!"
 		want := "hi!"
 		rp.Update(5, content, 0)
@@ -29,7 +29,7 @@ func TestBlockValueUpdate(t *testing.T) {
 		}
 	})
 	t.Run("Prepending a BlockValue", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "i!")
+		rp := NewBlockValue(ByteBuffer, "i!")
 		content := "h"
 		want := "hi!"
 		rp.Update(0, content, 0)
@@ -39,17 +39,17 @@ func TestBlockValueUpdate(t *testing.T) {
 		}
 	})
 	t.Run("append after empty space", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "Hi")
+		rp := NewBlockValue(ByteBuffer, "Hi")
 		rp.Update(999, " ", 0) //append
 		rp.Update(999, "!", 0)
-		want := NewBlockValue("ropeBuffer", "Hi !")
+		want := NewBlockValue(ByteBuffer, "Hi !")
 		got := rp
 		if !reflect.DeepEqual(want, got) {
 			t.Errorf("Expected %v, got %v", want.String(), got.String())
 		}
 	})
 	t.Run("deleting a value", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "0123456789")
+		rp := NewBlockValue(ByteBuffer, "0123456789")
 		_,err := rp.Update(1, "", 3)
 		if err != nil {
 			t.Fatal("Failed to update")
@@ -61,7 +61,7 @@ func TestBlockValueUpdate(t *testing.T) {
 		}
 	})
 	t.Run("deleting the whole buffer", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "0123456789")
+		rp := NewBlockValue(ByteBuffer, "0123456789")
 		_,err := rp.Update(0, "", 10)
 		if err != nil {
 			t.Fatal("Failed to update")
@@ -73,7 +73,7 @@ func TestBlockValueUpdate(t *testing.T) {
 		}
 	})
 	t.Run("inserting and deleting", func(t *testing.T) {
-		rp := NewBlockValue("ropeBuffer", "0123456789")
+		rp := NewBlockValue(ByteBuffer, "0123456789")
 		_,err := rp.Update(1, "000", 4)
 		if err != nil {
 			t.Fatal("Failed to update")
