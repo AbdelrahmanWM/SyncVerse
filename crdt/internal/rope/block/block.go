@@ -10,13 +10,13 @@ import (
 type Block struct {
 	clockOffset *ClockOffset
 	content     BlockValue
-	blockType   string
+	blockType   ValueType
 	deleted     bool
 	formats     map[ActionCode]Format
 }
 
-func NewBlock(clockOffset *ClockOffset, content string, blockType string, deleted bool) *Block {
-	return &Block{clockOffset: clockOffset, content: NewBlockValue(blockType, content), blockType: blockType, deleted: deleted, formats: make(map[ActionCode]Format, 1)}
+func NewBlock(clockOffset *ClockOffset, content string, blockValueType ValueType, deleted bool) *Block {
+	return &Block{clockOffset: clockOffset, content: NewBlockValue(blockValueType, content), blockType: blockValueType, deleted: deleted, formats: make(map[ActionCode]Format, 1)}
 }
 func CopyBlock(block *Block) *Block {
 	return &Block{clockOffset: block.clockOffset.Copy(), content: CopyBlockValue(block.blockType, block.content), blockType: block.blockType, deleted: block.deleted}

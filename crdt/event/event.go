@@ -9,7 +9,7 @@ type Event struct {
 	Kind        EventType
 	UserID      global.UserID
 	ReplicaID   global.ReplicaID
-	vectorClock vc.VectorClock
+	VectorClock vc.VectorClock
 	Metadata    any
 }
 

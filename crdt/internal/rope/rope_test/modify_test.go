@@ -16,7 +16,7 @@ import (
 func TestModify(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		rope := NewRope(10, 0.7, 0.6, value.ByteBuffer, block_ds.BlockArrayDS, "A")
-		block := block.NewBlock(vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 0}, 0), "ABC",value.ByteBuffer, false)
+		block := block.NewBlock(vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 1}, 0), "ABC",value.ByteBuffer, false)
 		rope.Insert(block, vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), 0)
 		want := false
 		got := block.FormatExists(action.Bold)

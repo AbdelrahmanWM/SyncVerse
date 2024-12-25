@@ -1,3 +1,4 @@
+
 package event
 
 import (
@@ -7,9 +8,9 @@ import (
 )
 
 type InsertionEventMetadata struct {
-	contentBlock      *block.Block
-	toBeInsertedAfter *vector_clock.ClockOffset
-	startIndex int
+	ContentBlock      *block.Block
+	ToBeInsertedAfter *vector_clock.ClockOffset
+	StartIndex int
 }
 
 func NewInsertionEventMetadata(inputs ...any) any {
@@ -26,13 +27,13 @@ func NewInsertionEventMetadata(inputs ...any) any {
 }
 
 type DeletionEventMetadata struct {
-	deletionMetadata global.ModifyMetadata
-	startIndex int
+	DeletionMetadata []global.ModifyMetadata
+	StartIndex int
 }
 
 func NewDeletionEventMetadata(inputs ...any) any {
 	if len(inputs) == 2 {
-		if deletionMetadata, ok := inputs[0].(global.ModifyMetadata); ok {
+		if deletionMetadata, ok := inputs[0].([]global.ModifyMetadata); ok {
 			if index,ok:=inputs[1].(int);ok{
 				return &DeletionEventMetadata{deletionMetadata,index}
 			}

@@ -14,11 +14,11 @@ import (
 func TestBalanceLeaves(t *testing.T) {
 	rope := NewRope(12, 0.7, 0.6, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 
-	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "0", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
-	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "123", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 2), 0)
-	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "45678", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
-	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "ABCDEFGHIJKLM", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 2), 0)
-	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 4}, 0), "IIIII", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
+	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "0", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
+	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 2}, 0), "123", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 2), 0)
+	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 3}, 0), "45678", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
+	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 4}, 0), "ABCDEFGHIJKLM", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 2), 0)
+	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 5}, 0), "IIIII", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
 	fmt.Println("Initial Rope State:")
 	rope.PrintRope(false)
 	rope.BalanceLeaves(Right)

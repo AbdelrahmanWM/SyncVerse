@@ -20,7 +20,7 @@ func TestDelete(t *testing.T) {
 		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
-				NewBlock(NewClockOffset(VectorClock{"A": i}, 0),
+				NewBlock(NewClockOffset(VectorClock{"A": i+1}, 0),
 					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
@@ -29,7 +29,7 @@ func TestDelete(t *testing.T) {
 		Assert(t, got, want)
 		toBeDeleted := []global.ModifyMetadata{
 			{
-				NewClockOffset(VectorClock{"A": 0}, 0),
+				NewClockOffset(VectorClock{"A": 1}, 0),
 				[2]int{0, 1},
 			},
 		}
@@ -43,7 +43,7 @@ func TestDelete(t *testing.T) {
 		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
-				NewBlock(NewClockOffset(VectorClock{"A": i}, 0),
+				NewBlock(NewClockOffset(VectorClock{"A": i+1}, 0),
 					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
@@ -52,19 +52,19 @@ func TestDelete(t *testing.T) {
 		Assert(t, got, want)
 		toBeDeleted := []global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
-				NewClockOffset(VectorClock{"A": 2}, 0),
-				[2]int{0, 1},
-			},
-			{
-				NewClockOffset(VectorClock{"A": 0}, 0),
-				[2]int{0, 1},
-			},
-			{
-				NewClockOffset(VectorClock{"A": 7}, 0),
+				NewClockOffset(VectorClock{"A": 3}, 0),
 				[2]int{0, 1},
 			},
 			{
 				NewClockOffset(VectorClock{"A": 1}, 0),
+				[2]int{0, 1},
+			},
+			{
+				NewClockOffset(VectorClock{"A": 8}, 0),
+				[2]int{0, 1},
+			},
+			{
+				NewClockOffset(VectorClock{"A": 2}, 0),
 				[2]int{0, 1},
 			},
 		}
@@ -78,12 +78,12 @@ func TestDelete(t *testing.T) {
 
 		rope := NewRope(50, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		rope.Insert(
-			NewBlock(NewClockOffset(VectorClock{"A": 0}, 0),
+			NewBlock(NewClockOffset(VectorClock{"A": 1}, 0),
 				"This is Not Deleted", value.ByteBuffer, false),
 			NewClockOffset(VectorClock{}, 1), 0)
 		toBeDeleted := []global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
-				NewClockOffset(VectorClock{"A": 0}, 0),
+				NewClockOffset(VectorClock{"A": 1}, 0),
 				[2]int{8, 12},
 			},
 		}
@@ -95,7 +95,7 @@ func TestDelete(t *testing.T) {
 	})
 	t.Run("delete a divided block", func(t *testing.T) {
 		rope := NewRope(50, 0.7, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
-		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 0}, 0), "|", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
+		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "|", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
 		rope.Delete([]global.ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
 
 		want := "|"

@@ -2,8 +2,8 @@ package action
 
 
 type InsertionMetadata struct {
-	content string
-	index int
+	Content string
+	Index int
 }
 func NewInsertion(inputs ...any)any{
 	if len(inputs)==2 {
@@ -16,8 +16,8 @@ func NewInsertion(inputs ...any)any{
 	return nil
 }
 type DeletionMetadata struct {
-	length int
-	index int
+	Length int
+	Index int
 }
 func NewDeletion(inputs... any)any {
 	if len(inputs)==2{

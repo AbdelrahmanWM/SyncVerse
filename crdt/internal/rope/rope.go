@@ -5,10 +5,13 @@ import (
 	"strings"
 
 	"github.com/AbdelrahmanWM/SyncVerse/crdt/action"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/global"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block_ds"
 	format "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/format"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 )
 
@@ -17,20 +20,16 @@ type Rope struct {
 	chunkSize   int
 	splitSize   int
 	mergeSize   int
-	ropeType    string
-	blockDSType string
+	ropeType    value.ValueType
+	blockDSType block_ds.BlockDSType
 	replicaID   string
-}
-type ModifyMetadata struct {
-	ClockOffset *ClockOffset
-	Rng         [2]int
 }
 
 /*
 **
 Initializes a new rope with two empty leaf nodes
 */
-func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType string, blockDSType string, replicaID string) *Rope {
+func NewRope(maximumChunkLength int, splitRatio float64, mergeRatio float64, ropeType value.ValueType, blockDSType block_ds.BlockDSType, replicaID string) *Rope {
 	root := NewInnerNode(1, 1, 2, nil, nil, nil)
 	leftBlocks := make([]*Block, 1, 10)
 
@@ -82,7 +81,7 @@ func (r *Rope) Find(position int, ignoreDeleted bool) (*LeafNode, int) {
 	for ptr != nil {
 		switch p := ptr.(type) {
 		case *InnerNode:
-			if ignoreDeleted {
+			if !ignoreDeleted {
 				if position >= p.LeftWeight() { // the equal is due to the 0-index
 					ptr = ptr.Right()
 					position -= p.LeftWeight()
@@ -192,10 +191,10 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	r.split(refNode)
 	return true
 }
-func (r *Rope) Delete(blocksMetadata []ModifyMetadata, startIndex int) bool {
+func (r *Rope) Delete(blocksMetadata []global.ModifyMetadata, startIndex int) bool {
 	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
 }
-func (r *Rope) Modify(blocksMetadata []ModifyMetadata, format format.Format, searchStartIndex int) bool {
+func (r *Rope) Modify(blocksMetadata []global.ModifyMetadata, format format.Format, searchStartIndex int) bool {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
 		return true
@@ -316,12 +315,12 @@ func (r *Rope) findInsertionBlockOffset(insertionPosition int) (clockOffset *Clo
 
 	node, index := r.Find(insertionPosition, true)
 	if node == nil { // shouldn't happen
-		fmt.Errorf("%s", "[ERROR] node couldn't be located") //temp
+		fmt.Printf("%s", "[ERROR] node couldn't be located") //temp
 		return nil
 	}
 	block, localIndex, _ := node.Blocks().Find(index, false)
 	if block == nil { // shouldn't happen
-		fmt.Errorf("%s", "[ERROR] block couldn't be located")
+		fmt.Printf("%s", "[ERROR] block couldn't be located")
 		return nil
 	}
 

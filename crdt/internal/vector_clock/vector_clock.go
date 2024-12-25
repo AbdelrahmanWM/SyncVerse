@@ -8,7 +8,7 @@ import (
 type VectorClock map[string]int
 
 func NewVectorClock(replicaID string) VectorClock {
-	if (replicaID==""){
+	if replicaID == "" {
 		return VectorClock{}
 	}
 	return VectorClock{replicaID: 1}
@@ -76,6 +76,23 @@ func (vc1 VectorClock) Compare(vc2 VectorClock) int {
 	} else {
 		return 0
 	}
+}
+func (vc1 VectorClock) IsValidSuccessor(vc2 VectorClock) bool {
+	union := mergeMaps(vc1, vc2)
+	for k, _ := range union {
+		v1, ok1 := vc1[k]
+		v2, ok2 := vc2[k]
+		if ok1 && ok2 {
+			if v2-v1 > 1 {
+				return false
+			}
+		} else if ok2 {
+			if v2 > 1 {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (vc1 VectorClock) Merge(vc2 VectorClock) VectorClock {
