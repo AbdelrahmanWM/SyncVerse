@@ -1,6 +1,7 @@
 package rope
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/node"
 	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 	. "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/utility/error_formatter.go"
 )
 
 type Rope struct {
@@ -102,7 +104,7 @@ func (r *Rope) Find(position int, ignoreDeleted bool) (*LeafNode, int) {
 	}
 	return nil, -1
 }
-func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex int) bool { //future fix: separate the localIndex from the clockOffset
+func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex int) error { //future fix: separate the localIndex from the clockOffset
 	curNode, block, localIdx, blockIdx := r.findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset, startIndex)
 	inserted := false
 
@@ -134,7 +136,7 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 
 			val, err := blk.Compare(contentBlock)
 			if err != nil {
-				return false /// change later
+				return err
 			}
 			switch val {
 
@@ -144,16 +146,13 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 					refNode.Blocks().Update(i, []*Block{contentBlock}, 0) // insert the block in the right place
 					inserted = true
 				} else if hashComp == 0 {
-					fmt.Println("[ERROR] SAME EVENT VECTOR CLOCK!") //temp
-					return false
+					return error_formatter.NewError("SAME EVENT VECTOR CLOCK!")
 				}
 			case -1: // already known event
 				refNode.Blocks().Update(i, []*Block{contentBlock}, 0)
 				inserted = true
 			case 1: // gap in events
-				fmt.Println("[ERROR] NON-POSSIBLE EVENT ORDER") //temp
-
-				return false
+				return error_formatter.NewError("IMPOSSIBLE EVENT ORDER")
 			}
 
 			if inserted {
@@ -166,7 +165,7 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 				nextBlock := nextNode.Blocks().Get(0)
 				compare, err := nextBlock.Compare(contentBlock)
 				if err != nil {
-					return false
+					return err
 				}
 				if compare == -1 || (compare == 0 && nextBlock.CompareHashes(contentBlock) > 0) {
 					refNode.Blocks().Update(i+1, []*Block{contentBlock}, 0) /////
@@ -189,15 +188,15 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	updateWeight(refNode, contentBlock.Len(), 0)
 
 	r.split(refNode)
-	return true
+	return nil
 }
-func (r *Rope) Delete(blocksMetadata []global.ModifyMetadata, startIndex int) bool {
+func (r *Rope) Delete(blocksMetadata []global.ModifyMetadata, startIndex int) error {
 	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
 }
-func (r *Rope) Modify(blocksMetadata []global.ModifyMetadata, format format.Format, searchStartIndex int) bool {
+func (r *Rope) Modify(blocksMetadata []global.ModifyMetadata, format format.Format, searchStartIndex int) error {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
-		return true
+		return nil 
 	}
 	var startIndex int
 	var endIndex int
@@ -262,12 +261,9 @@ func (r *Rope) Modify(blocksMetadata []global.ModifyMetadata, format format.Form
 		}
 	}
 	if curIdx == blocksLength {
-		return true
-	} else if curIdx > 0 {
-		fmt.Println("[ERROR] not all blocks where modified")
-	}
-	return false
-
+		return nil
+	} 
+	return  error_formatter.NewError("Not all blocks where modified") 
 }
 func updateWeight(node RopeNode, diff int, deletedLength int) {
 
@@ -307,26 +303,24 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *ClockOf
 	return nil, nil, 0, 0
 }
 
-func (r *Rope) findInsertionBlockOffset(insertionPosition int) (clockOffset *ClockOffset) {
+func (r *Rope) findInsertionBlockOffset(insertionPosition int) (clockOffset *ClockOffset, err error) {
 	if insertionPosition <= 0 { // for now, assuming the zero vector block won't be removed
-		return nil
+		return nil, errors.New("[ERROR] invalid position")
 	}
 	insertionPosition-- // get the index of the block before
 
 	node, index := r.Find(insertionPosition, true)
 	if node == nil { // shouldn't happen
-		fmt.Printf("%s", "[ERROR] node couldn't be located") //temp
-		return nil
+		return nil, errors.New("[ERROR] node couldn't be located")
 	}
 	block, localIndex, _ := node.Blocks().Find(index, false)
 	if block == nil { // shouldn't happen
-		fmt.Printf("%s", "[ERROR] block couldn't be located")
-		return nil
+		return nil, errors.New("[ERROR] block couldn't be located")
 	}
 
 	InsertionClockOffset := NewClockOffset(block.ClockOffset().VectorClock(), block.Offset()+localIndex+1) //after
 
-	return InsertionClockOffset
+	return InsertionClockOffset, nil
 }
 func (r *Rope) FindBlockFromNode(node *LeafNode, index int) (block *Block, localIndex int, blockIndex int) {
 	block, bIndex, blkIndex := node.Blocks().Find(index, false)
@@ -451,26 +445,24 @@ func (r *Rope) split(curNode *LeafNode) {
 		r.split(curNode)
 	}
 }
-func (r *Rope) findBlocks(index int, length int) []struct {
-	clockOffset *ClockOffset
-	rng         [2]int
-} {
-	var blocksMetadata []struct {
-		clockOffset *ClockOffset
-		rng         [2]int
-	}
+func (r *Rope) FindBlocks(index int, length int) ([]global.ModifyMetadata, error) {
+	var blocksMetadata []global.ModifyMetadata
 	done := false
 	node, localIndex := r.Find(index, true)
+	if node == nil {
+		return nil, error_formatter.NewError("Node not found")
+	}
 	blk, blkLocalIndex, blkStartIndex := r.FindBlockFromNode(node, localIndex)
 	if blk == nil {
-		return nil
+		return nil, error_formatter.NewError("Block not found")
 	}
 	var startIndex int = blkLocalIndex
 	var endIndex int
 
 	i := blkStartIndex
-	len := node.Blocks().Len()
 	for node != nil && !done && length > 0 {
+		len := node.Blocks().Len()
+
 		for ; i < len; i++ {
 			block := node.Blocks().Get(i)
 
@@ -483,8 +475,8 @@ func (r *Rope) findBlocks(index int, length int) []struct {
 				done = true
 			}
 			blocksMetadata = append(blocksMetadata, struct {
-				clockOffset *ClockOffset
-				rng         [2]int
+				ClockOffset *ClockOffset
+				Rng         [2]int
 			}{block.ClockOffset(), [2]int{startIndex, endIndex}})
 			length -= (endIndex - startIndex)
 
@@ -495,10 +487,13 @@ func (r *Rope) findBlocks(index int, length int) []struct {
 		}
 		node = r.nextLeaf(node)
 		i = 0
-		len = node.Blocks().Len()
 
 	}
-	return blocksMetadata
+	err := errors.New("[ERROR] reached the end of the rope")
+	if length == 0 {
+		err = nil
+	}
+	return blocksMetadata, err
 }
 func (r *Rope) nextLeaf(leafNode *LeafNode) *LeafNode {
 	if leafNode == nil {

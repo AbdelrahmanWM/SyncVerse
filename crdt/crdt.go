@@ -1,9 +1,11 @@
 package crdt
 
 import (
-	a "github.com/AbdelrahmanWM/SyncVerse/crdt/action"
+	action "github.com/AbdelrahmanWM/SyncVerse/crdt/action"
 	d "github.com/AbdelrahmanWM/SyncVerse/crdt/data_structure"
-	e "github.com/AbdelrahmanWM/SyncVerse/crdt/event"
+	event "github.com/AbdelrahmanWM/SyncVerse/crdt/event"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/crdt/internal/rope/value"
 	v "github.com/AbdelrahmanWM/SyncVerse/crdt/internal/vector_clock"
 	"github.com/AbdelrahmanWM/SyncVerse/utility/error_formatter.go"
 )
@@ -12,7 +14,7 @@ type CRDT struct {
 	replicaID          string
 	currentVectorClock v.VectorClock
 	dataStructure      d.CRDTDataStructure
-	eventQueue         []*e.Event
+	eventQueue         []*event.Event
 }
 
 func NewCRDT(dataStructure d.CRDTDataStructure, replicaID string) *CRDT {
@@ -20,32 +22,78 @@ func NewCRDT(dataStructure d.CRDTDataStructure, replicaID string) *CRDT {
 		replicaID,
 		v.NewVectorClock(replicaID),
 		dataStructure,
-		make([]*e.Event, 10), //for now
+		make([]*event.Event, 10), //for now
 	}
 }
 
-func (crdt *CRDT) Prepare(action *a.Action) (*e.Event, error) {
-	event, err := crdt.dataStructure.GetEvent(action, crdt.currentVectorClock.NewVectorClock(crdt.replicaID))
-	if err != nil || event == nil {
-		return nil, err
+func (crdt *CRDT) Prepare(a *action.Action) (*event.Event, error) {
+	newVectorClock:=crdt.currentVectorClock.NewVectorClock(crdt.replicaID)
+	var e event.Event
+	e.UserID = a.UserID
+	e.ReplicaID = a.ReplicaID
+	e.VectorClock =newVectorClock 
+	switch a.Kind {
+	case action.Insert:
+		actionMetadata, ok := a.Metadata.(action.InsertionMetadata)
+		if !ok {
+			return nil, error_formatter.NewError("Invalid insertion metadata")
+		}
+		e.Kind = event.Insert
+		insertionClockOffset,err:= crdt.dataStructure.FindInsertionBlockOffset(actionMetadata.Index)
+		if err != nil {
+			return nil,err
+		}
+		contentBlock := block.NewBlock(v.NewClockOffset(newVectorClock, 0), actionMetadata.Content, value.ByteBuffer, false)
+		e.Metadata = event.NewInsertionEventMetadata(contentBlock, insertionClockOffset, actionMetadata.Index)
+	case action.Delete:
+		actionMetadata, ok := a.Metadata.(action.DeletionMetadata)
+		if !ok {
+			return nil, error_formatter.NewError("Invalid deletion metadata") // todo:Make it an error
+		}
+		e.Kind = event.Delete
+		deletionMetadata,err := crdt.dataStructure.FindBlocks(actionMetadata.Index, actionMetadata.Length)
+		if err != nil {
+			return nil,err 
+		}
+		e.Metadata = event.NewDeletionEventMetadata(deletionMetadata, actionMetadata.Index)
+	default:
+		return nil, error_formatter.NewError("Action type not found")
 	}
-	crdt.eventQueue = append(crdt.eventQueue, event) // temp
-	return event, nil                                ////temp
+	crdt.eventQueue = append(crdt.eventQueue, &e) // temp
+	return &e, nil
 }
-func (crdt *CRDT) Apply(event *e.Event) error {
-	if !crdt.currentVectorClock.IsValidSuccessor(event.VectorClock) {
+func (crdt *CRDT) Apply(e *event.Event) error {
+	if !crdt.currentVectorClock.IsValidSuccessor(e.VectorClock) {
 		return error_formatter.NewError("Missing event(s)") // temp
 	}
-	err := crdt.dataStructure.Apply(event)
-	if err != nil {
-		return err
+	switch e.Kind {
+	case event.Insert:
+		insertionMetadata, ok := e.Metadata.(event.InsertionEventMetadata)
+		if !ok {
+			return error_formatter.NewError("Invalid insertion metadata") 
+		}
+		err := crdt.dataStructure.Insert(insertionMetadata.ContentBlock, insertionMetadata.ToBeInsertedAfter, insertionMetadata.StartIndex)
+		if err!=nil { 
+			return error_formatter.NewError("Failed to apply insertion event")
+		}
+	case event.Delete:
+		deletionMetadata, ok := e.Metadata.(event.DeletionEventMetadata)
+		if !ok {
+			return error_formatter.NewError("Invalid deletion metadata")
+		}
+		err := crdt.dataStructure.Delete(deletionMetadata.DeletionMetadata, deletionMetadata.StartIndex)
+		if err!=nil {
+			return error_formatter.NewError("Failed to apply deletion event")
+		}
+	default:
+		return error_formatter.NewError("Event type not found")
 	}
-	crdt.currentVectorClock = crdt.currentVectorClock.Merge(event.VectorClock)
+	crdt.currentVectorClock = crdt.currentVectorClock.Merge(e.VectorClock)
 	return nil
 }
 
-func (crdt *CRDT) Query(remoteReplicaID string) []e.Event { // temp
+func (crdt *CRDT) Query(remoteReplicaID string) []event.Event { // temp
 	// webRTC interaction
 	// todo: implementation
-	return []e.Event{}
+	return []event.Event{}
 }

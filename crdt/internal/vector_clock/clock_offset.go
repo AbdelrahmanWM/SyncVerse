@@ -1,5 +1,7 @@
 package vector_clock
 
+import "fmt"
+
 type ClockOffset struct {
 	offset      int
 	vectorClock VectorClock
@@ -34,4 +36,7 @@ func (c *ClockOffset) Merge(co *ClockOffset) *ClockOffset {
 }
 func (c *ClockOffset) CompareHashes(c2 *ClockOffset) int {
 	return c.vectorClock.CompareHashes(c2.vectorClock)
+}
+func (c *ClockOffset) String() string {
+	return c.vectorClock.toString() + ":" + fmt.Sprintf("%d", c.offset)
 }

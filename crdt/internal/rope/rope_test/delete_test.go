@@ -20,7 +20,7 @@ func TestDelete(t *testing.T) {
 		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
-				NewBlock(NewClockOffset(VectorClock{"A": i+1}, 0),
+				NewBlock(NewClockOffset(VectorClock{"A": i + 1}, 0),
 					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
@@ -43,7 +43,7 @@ func TestDelete(t *testing.T) {
 		rope := NewRope(10, 0.70, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		for i := 0; i < 10; i++ {
 			rope.Insert(
-				NewBlock(NewClockOffset(VectorClock{"A": i+1}, 0),
+				NewBlock(NewClockOffset(VectorClock{"A": i + 1}, 0),
 					fmt.Sprintf("%d", i), value.ByteBuffer, false),
 				NewClockOffset(VectorClock{}, (i%2)+1), 0)
 		}
