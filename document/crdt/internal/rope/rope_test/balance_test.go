@@ -11,7 +11,7 @@ import (
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
 )
 
-func TestBalanceLeaves(t *testing.T) {
+func TestBalanceLeaves(t *testing.T) {  /// Failing test for examination purposes
 	rope := NewRope(12, 0.7, 0.6, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 
 	rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "0", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)

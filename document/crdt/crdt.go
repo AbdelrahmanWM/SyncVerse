@@ -102,3 +102,6 @@ func (crdt *CRDT) Query(remoteReplicaID string) []event.Event { // temp
 	// todo: implementation
 	return []event.Event{}
 }
+func (crdt *CRDT)DataStructure()d.CRDTDataStructure{
+	return crdt.dataStructure
+}

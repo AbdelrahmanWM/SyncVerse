@@ -12,7 +12,7 @@ type InsertionMetadata struct {
 	Content string
 	Index   int
 }
-
+// (insertedContent string, insertionIndex int)
 func NewInsertion(inputs ...any) any {
 	if len(inputs) == 2 {
 		if content, ok := inputs[0].(string); ok {
@@ -36,11 +36,11 @@ type DeletionMetadata struct {
 	Length int
 	Index  int
 }
-
+// (deletionLength int, deletionIndex int)
 func NewDeletion(inputs ...any) any {
 	if len(inputs) == 2 {
 		if length, ok := inputs[0].(int); ok {
-			if index, ok := inputs[0].(int); ok {
+			if index, ok := inputs[1].(int); ok {
 				return &DeletionMetadata{length, index}
 			}
 		}

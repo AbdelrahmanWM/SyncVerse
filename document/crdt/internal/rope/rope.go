@@ -11,6 +11,7 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block_ds"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block_ds"
 	format "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/format"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/node"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/node"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
@@ -190,10 +191,10 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	r.split(refNode)
 	return nil
 }
-func (r *Rope) Delete(blocksMetadata []*global.ModifyMetadata, startIndex int) error {
+func (r *Rope) Delete(blocksMetadata global.ModifyMetadataArray, startIndex int) error {
 	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
 }
-func (r *Rope) Modify(blocksMetadata []*global.ModifyMetadata, format format.Format, searchStartIndex int) error {
+func (r *Rope) Modify(blocksMetadata global.ModifyMetadataArray, format format.Format, searchStartIndex int) error {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
 		return nil
@@ -360,24 +361,19 @@ func (r *Rope) PrintRope(addDeleted bool) {
 }
 func (r *Rope) String(addDeleted bool) string {
 	result := strings.Builder{}
-	for queue := []RopeNode{r.Root()}; len(queue) > 0; {
-		size := len(queue)
-		for i := 0; i < size; i++ {
-			node := queue[0]
-			switch castedNode := node.(type) {
-			case *LeafNode:
-				result.WriteString(castedNode.String(addDeleted, ""))
-			}
-			queue = queue[1:]
-			if node.Left() != nil {
-				queue = append(queue, node.Left())
-			}
-			if node.Right() != nil {
-				queue = append(queue, node.Right())
-			}
-		}
-	}
+	r.string(r.Root(),addDeleted,&result)
 	return result.String()
+}
+func (r *Rope) string(n RopeNode, addDeleted bool, builder *strings.Builder) {
+	if n == nil {
+		return
+	}
+	if leaf, ok := n.(*node.LeafNode); ok {
+		builder.WriteString(leaf.String(addDeleted, ""))
+		return
+	}
+	r.string(n.Left(), addDeleted, builder)
+	r.string(n.Right(), addDeleted, builder)
 }
 
 func (r *Rope) BalanceLeaves(direction Direction) {
@@ -445,8 +441,8 @@ func (r *Rope) split(curNode *LeafNode) {
 		r.split(curNode)
 	}
 }
-func (r *Rope) FindBlocks(index int, length int) ([]global.ModifyMetadata, error) {
-	var blocksMetadata []global.ModifyMetadata
+func (r *Rope) FindBlocks(index int, length int) (global.ModifyMetadataArray, error) {
+	var blocksMetadata global.ModifyMetadataArray
 	done := false
 	node, localIndex := r.Find(index, true)
 	if node == nil {
@@ -474,10 +470,7 @@ func (r *Rope) FindBlocks(index int, length int) ([]global.ModifyMetadata, error
 				endIndex = (startIndex + length) // end index not included
 				done = true
 			}
-			blocksMetadata = append(blocksMetadata, struct {
-				ClockOffset *ClockOffset
-				Rng         [2]int
-			}{block.ClockOffset(), [2]int{startIndex, endIndex}})
+			blocksMetadata = append(blocksMetadata, &global.ModifyMetadata{block.ClockOffset(), [2]int{startIndex, endIndex}})
 			length -= (endIndex - startIndex)
 
 			startIndex = 0

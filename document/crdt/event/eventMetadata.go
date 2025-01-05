@@ -18,6 +18,7 @@ type InsertionEventMetadata struct {
 	StartIndex        int
 }
 
+// (contentBlock *block.Block, toBeInsertedAfter *vector_clock.ClockOffset, startIndex int) 
 func NewInsertionEventMetadata(inputs ...any) EventMetadata {
 	if len(inputs) == 3 {
 		if contentBlock, ok := inputs[0].(*block.Block); ok {
@@ -46,9 +47,10 @@ type DeletionEventMetadata struct {
 	StartIndex       int
 }
 
+// (deletionMetadata global.ModifyMetadataArray, startIndex int)
 func NewDeletionEventMetadata(inputs ...any) EventMetadata {
 	if len(inputs) == 2 {
-		if deletionMetadata, ok := inputs[0].([]*global.ModifyMetadata); ok {
+		if deletionMetadata, ok := inputs[0].(global.ModifyMetadataArray); ok {
 			if index, ok := inputs[1].(int); ok {
 				return &DeletionEventMetadata{deletionMetadata, index}
 			}
