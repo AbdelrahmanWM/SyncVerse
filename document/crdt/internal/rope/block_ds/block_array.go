@@ -121,11 +121,11 @@ func (b *BlockArray) String(addDeleted bool, blockSeparator string) string {
 	for _, blk := range b.blocks {
 		if !addDeleted {
 			if !blk.IsDeleted() {
-				result.WriteString(blk.String())
+				result.WriteString(blk.Content())
 				result.WriteString(blockSeparator)
 			}
 		} else {
-			result.WriteString(blk.String())
+			result.WriteString(blk.Content())
 			result.WriteString(blockSeparator)
 		}
 	}

@@ -41,10 +41,10 @@ func TestFindBlocks(t *testing.T) {
 				fmt.Sprintf("%d", i-1), value.ByteBuffer, false),
 			vector_clock.NewClockOffset(vector_clock.VectorClock{}, (i%2)+1), 0)
 	}
-	rope4.Delete([]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}}, 0)
-	rope5Deletions := []global.ModifyMetadata{}
+	rope4.Delete([]*global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}}, 0)
+	rope5Deletions := []*global.ModifyMetadata{}
 	for i := 10; i > 0; i -= 2 {
-		rope5Deletions = append(rope5Deletions, global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": i}, 0), [2]int{0, 1}})
+		rope5Deletions = append(rope5Deletions, &global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": i}, 0), [2]int{0, 1}})
 	}
 	rope5.Delete(rope5Deletions, 0)
 	rope1.PrintRope(false)

@@ -1,12 +1,16 @@
 package action
 
-import "github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
+import (
+	"strings"
+
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
+)
 
 type Action struct {
 	Kind      ActionCode
 	UserID    global.UserID
 	ReplicaID global.ReplicaID
-	Metadata  any
+	Metadata  ActionMetadata
 }
 
 type ActionCode int
@@ -25,11 +29,40 @@ const (
 	BackgroundColor
 )
 
+func (a ActionCode) String() string {
+	switch a {
+	case Insert:
+		return "Insert"
+	case Delete:
+		return "Delete"
+	case MainHeading:
+		return "MainHeading"
+	case SubHeading:
+		return "SubHeading"
+	case SubSubHeading:
+		return "SubSubHeading"
+	case Bold:
+		return "Bold"
+	case Italic:
+		return "Italic"
+	case BulletPoint:
+		return "BulletPoint"
+	case Link:
+		return "Link"
+	case Color:
+		return "Color"
+	case BackgroundColor:
+		return "BackgroundColor"
+	default:
+		return "Unknown ActionCode"
+	}
+}
+
 type ActionConstructor func(inputs ...any) any
 
 var ActionMetadataRegistry map[ActionCode]ActionConstructor = make(map[ActionCode]ActionConstructor)
 
-func NewAction(kind ActionCode, userID global.UserID, replicaID global.ReplicaID, metadata any) *Action {
+func NewAction(kind ActionCode, userID global.UserID, replicaID global.ReplicaID, metadata ActionMetadata) *Action {
 	return &Action{kind, userID, replicaID, metadata}
 }
 func registerMetadata(actionCode ActionCode, metadata ActionConstructor) bool {
@@ -39,6 +72,20 @@ func registerMetadata(actionCode ActionCode, metadata ActionConstructor) bool {
 	}
 	ActionMetadataRegistry[actionCode] = metadata
 	return true
+}
+
+func (a *Action) String() string {
+	var results strings.Builder
+	results.WriteString("Action\n")
+	results.WriteString(a.Kind.String())
+	results.WriteString("\n")
+	results.WriteString(string(a.UserID))
+	results.WriteString("\n")
+	results.WriteString(string(a.ReplicaID))
+	results.WriteString("\n")
+	results.WriteString(a.Metadata.String())
+	results.WriteString("\n")
+	return results.String()
 }
 func initializeMetadataMap() {
 	registerMetadata(Insert, NewInsertion)

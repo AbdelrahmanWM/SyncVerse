@@ -8,7 +8,7 @@ import (
 
 type CRDTDataStructure interface {
 	Insert(contentBlock *block.Block, toBeInsertedAfterOffset *vector_clock.ClockOffset, startIndex int) error
-	Delete(toBeDeletedBlocksMetadata []global.ModifyMetadata, startIndex int) error
+	Delete(toBeDeletedBlocksMetadata []*global.ModifyMetadata, startIndex int) error
 	FindBlocks(firstBlockStartIndex int, length int) ([]global.ModifyMetadata, error)
 	FindInsertionBlockOffset(insertionPosition int) (clockOffset *vector_clock.ClockOffset, err error)
 }

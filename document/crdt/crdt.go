@@ -18,10 +18,14 @@ type CRDT struct {
 	eventQueue         []*event.Event
 }
 
-func NewCRDT(dataStructure d.CRDTDataStructure, replicaID string) *CRDT {
+func NewCRDT(dataStructure d.CRDTDataStructure, replicaID string, vectorClock v.VectorClock) *CRDT {
+	crdtVectorClock:=vectorClock
+	if crdtVectorClock==nil{
+		crdtVectorClock=v.NewVectorClock(replicaID)
+	}
 	return &CRDT{
 		replicaID,
-		v.NewVectorClock(replicaID),
+		crdtVectorClock,
 		dataStructure,
 		make([]*event.Event, 10), //for now
 	}
@@ -35,7 +39,7 @@ func (crdt *CRDT) Prepare(a *action.Action) (*event.Event, error) {
 	e.VectorClock = newVectorClock
 	switch a.Kind {
 	case action.Insert:
-		actionMetadata, ok := a.Metadata.(action.InsertionMetadata)
+		actionMetadata, ok := a.Metadata.(*action.InsertionMetadata)
 		if !ok {
 			return nil, error_formatter.NewError("Invalid insertion metadata")
 		}
@@ -47,7 +51,7 @@ func (crdt *CRDT) Prepare(a *action.Action) (*event.Event, error) {
 		contentBlock := block.NewBlock(v.NewClockOffset(newVectorClock, 0), actionMetadata.Content, value.ByteBuffer, false)
 		e.Metadata = event.NewInsertionEventMetadata(contentBlock, insertionClockOffset, actionMetadata.Index)
 	case action.Delete:
-		actionMetadata, ok := a.Metadata.(action.DeletionMetadata)
+		actionMetadata, ok := a.Metadata.(*action.DeletionMetadata)
 		if !ok {
 			return nil, error_formatter.NewError("Invalid deletion metadata") // todo:Make it an error
 		}
@@ -69,7 +73,7 @@ func (crdt *CRDT) Apply(e *event.Event) error {
 	}
 	switch e.Kind {
 	case event.Insert:
-		insertionMetadata, ok := e.Metadata.(event.InsertionEventMetadata)
+		insertionMetadata, ok := e.Metadata.(*event.InsertionEventMetadata)
 		if !ok {
 			return error_formatter.NewError("Invalid insertion metadata")
 		}
@@ -78,7 +82,7 @@ func (crdt *CRDT) Apply(e *event.Event) error {
 			return error_formatter.NewError("Failed to apply insertion event")
 		}
 	case event.Delete:
-		deletionMetadata, ok := e.Metadata.(event.DeletionEventMetadata)
+		deletionMetadata, ok := e.Metadata.(*event.DeletionEventMetadata)
 		if !ok {
 			return error_formatter.NewError("Invalid deletion metadata")
 		}

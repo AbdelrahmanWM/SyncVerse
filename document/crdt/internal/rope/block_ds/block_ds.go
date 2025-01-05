@@ -11,6 +11,15 @@ const (
 	BlockArrayDS BlockDSType = iota
 )
 
+func (bst BlockDSType) String() string {
+	switch bst {
+	case BlockArrayDS:
+		return "BlockArrayDS"
+	default:
+		return "Unknown BlockDSType"
+	}
+}
+
 var BlockDSRegistry = make(map[BlockDSType]BlockDSConstructor) // not optimal, change the func input later
 type BlockDS interface {
 	Len() int      // number of blocks

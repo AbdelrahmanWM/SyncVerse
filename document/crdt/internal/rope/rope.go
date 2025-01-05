@@ -190,10 +190,10 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	r.split(refNode)
 	return nil
 }
-func (r *Rope) Delete(blocksMetadata []global.ModifyMetadata, startIndex int) error {
+func (r *Rope) Delete(blocksMetadata []*global.ModifyMetadata, startIndex int) error {
 	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
 }
-func (r *Rope) Modify(blocksMetadata []global.ModifyMetadata, format format.Format, searchStartIndex int) error {
+func (r *Rope) Modify(blocksMetadata []*global.ModifyMetadata, format format.Format, searchStartIndex int) error {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
 		return nil
@@ -303,7 +303,7 @@ func (r *Rope) findNodeAndBlockAndBlockIndexFromClockOffset(clockOffset *ClockOf
 	return nil, nil, 0, 0
 }
 
-func (r *Rope) findInsertionBlockOffset(insertionPosition int) (clockOffset *ClockOffset, err error) {
+func (r *Rope) FindInsertionBlockOffset(insertionPosition int) (clockOffset *ClockOffset, err error) {
 	if insertionPosition <= 0 { // for now, assuming the zero vector block won't be removed
 		return nil, errors.New("[ERROR] invalid position")
 	}

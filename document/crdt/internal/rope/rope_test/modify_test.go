@@ -22,12 +22,12 @@ func TestModify(t *testing.T) {
 		got := block.FormatExists(action.Bold)
 		Assert(t, got, want)
 		// adding bold effect
-		rope.Modify([]global.ModifyMetadata{{block.ClockOffset(), [2]int{0, 3}}}, format.Format{action.Bold, ""}, 0)
+		rope.Modify([]*global.ModifyMetadata{{block.ClockOffset(), [2]int{0, 3}}}, format.Format{action.Bold, ""}, 0)
 		want = true
 		got = block.FormatExists(action.Bold)
 		Assert(t, got, want)
 		// removing bold effect
-		rope.Modify([]global.ModifyMetadata{{block.ClockOffset(), [2]int{0, 3}}}, format.Format{action.Bold, "del"}, 0)
+		rope.Modify([]*global.ModifyMetadata{{block.ClockOffset(), [2]int{0, 3}}}, format.Format{action.Bold, "del"}, 0)
 		want = false
 		got = block.FormatExists(action.Bold)
 		Assert(t, got, want)

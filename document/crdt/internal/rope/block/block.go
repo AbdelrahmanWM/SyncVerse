@@ -1,6 +1,9 @@
 package block
 
 import (
+	"strconv"
+	"strings"
+
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/action"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/format"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
@@ -38,8 +41,20 @@ func (c *Block) Split(index int) (*Block, *Block) {
 	return NewBlock(c.clockOffset.Copy(), leftContent.String(), c.blockType, c.deleted), NewBlock(NewClockOffset(c.clockOffset.VectorClock().Copy(), index), rightContent.String(), c.blockType, c.deleted)
 }
 
-func (c *Block) String() string {
+func (c *Block) Content() string {
 	return c.content.String()
+}
+func (c *Block) String() string {
+	var results strings.Builder
+	results.WriteString("Block\n")
+	results.WriteString(c.Content())
+	results.WriteString(" ")
+	results.WriteString(c.clockOffset.String())
+	results.WriteString(" ")
+	results.WriteString(c.blockType.String())
+	results.WriteString(" ")
+	results.WriteString(strconv.FormatBool(c.deleted))
+	return results.String()
 }
 func (c *Block) IsDeleted() bool {
 	return c.deleted

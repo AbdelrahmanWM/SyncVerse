@@ -8,6 +8,14 @@ type ValueType int
 const (
 	ByteBuffer ValueType= iota
 )
+func (v ValueType)String()string{
+	switch v{
+	case ByteBuffer:
+		return "ByteBuffer"
+	default:
+		return "Unknown ValueType"
+	}
+}
 var BlockValueRegistry = make(map[ValueType]constructors)
 
 type BlockValue interface {
