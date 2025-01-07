@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 type ReplicaID string
@@ -30,11 +30,12 @@ func (mm *ModifyMetadata) String() string {
 	result.WriteString(strconv.Itoa(mm.Rng[1]))
 	return result.String()
 }
+
 type ModifyMetadataArray []*ModifyMetadata
 
-func(mma ModifyMetadataArray)String()string{
+func (mma ModifyMetadataArray) String() string {
 	var result strings.Builder
-	for _,mm:=range mma{
+	for _, mm := range mma {
 		result.WriteString(mm.String())
 		result.WriteString("\n---\n")
 	}

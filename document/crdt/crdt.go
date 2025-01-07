@@ -6,10 +6,10 @@ import (
 
 	d "github.com/AbdelrahmanWM/SyncVerse/document/crdt/data_structure"
 	event "github.com/AbdelrahmanWM/SyncVerse/document/crdt/event"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/event_priority_queue.go"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
-	v "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/event_priority_queue.go"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	v "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 type CRDT struct {

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 func TestNewVectorClock(t *testing.T) {

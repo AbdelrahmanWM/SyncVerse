@@ -1,7 +1,7 @@
 package node
 
 import (
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block_ds"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 )
 
 type RopeNode interface {

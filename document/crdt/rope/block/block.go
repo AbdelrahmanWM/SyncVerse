@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/action"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/format"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/format"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 type Block struct {

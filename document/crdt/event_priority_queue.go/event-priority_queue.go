@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/event"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 	"github.com/AbdelrahmanWM/SyncVerse/document/error_formatter.go"
 )
 

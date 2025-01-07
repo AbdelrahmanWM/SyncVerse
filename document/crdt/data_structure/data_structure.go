@@ -2,8 +2,8 @@ package data_structure
 
 import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 type CRDTDataStructure interface {

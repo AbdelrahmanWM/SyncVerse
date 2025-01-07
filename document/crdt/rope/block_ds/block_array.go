@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 )
 
 type BlockArray struct {

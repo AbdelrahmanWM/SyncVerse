@@ -9,11 +9,11 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/action"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/event"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block_ds"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 func TestPrepare(t *testing.T) {
@@ -97,26 +97,26 @@ func TestApply(t *testing.T) {
 	if !ok {
 		t.Error("Error casting event1 metadata")
 	}
-    event2MD,ok:=event.NewDeletionEventMetadata(
-		global.ModifyMetadataArray{&global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{},1),[2]int{0,1}},&global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A":2},0),[2]int{0,5}},},
+	event2MD, ok := event.NewDeletionEventMetadata(
+		global.ModifyMetadataArray{&global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}, &global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 5}}},
 		5,
 	).(*event.DeletionEventMetadata)
-	if !ok{
+	if !ok {
 		t.Error("Error casting event2 metadata")
 	}
-	testcases := []struct { // independent 
+	testcases := []struct { // independent
 		label                        string
 		event                        *event.Event
 		expectedRopeStringAfterEvent string
 	}{
 		{
 			"Insertion event",
-		event.NewEvent(event.Insert,global.UserID("Samy"),global.ReplicaID("A"),vector_clock.VectorClock{"A":3},event1MD),
-		" ABCDE123 FGHIJ",
+			event.NewEvent(event.Insert, global.UserID("Samy"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3}, event1MD),
+			" ABCDE123 FGHIJ",
 		},
 		{
 			"Deletion event",
-			event.NewEvent(event.Delete,global.UserID("Samy"),global.ReplicaID("A"),vector_clock.VectorClock{"A":3},event2MD),
+			event.NewEvent(event.Delete, global.UserID("Samy"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3}, event2MD),
 			" ABCDE",
 		},
 	}

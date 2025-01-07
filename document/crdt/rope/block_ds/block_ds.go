@@ -1,7 +1,7 @@
 package block_ds
 
 import (
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 )
 
 type BlockDSConstructor = func(blocks []*Block) BlockDS

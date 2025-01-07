@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 type EventMetadata interface {
@@ -18,7 +18,7 @@ type InsertionEventMetadata struct {
 	StartIndex        int
 }
 
-// (contentBlock *block.Block, toBeInsertedAfter *vector_clock.ClockOffset, startIndex int) 
+// (contentBlock *block.Block, toBeInsertedAfter *vector_clock.ClockOffset, startIndex int)
 func NewInsertionEventMetadata(inputs ...any) EventMetadata {
 	if len(inputs) == 3 {
 		if contentBlock, ok := inputs[0].(*block.Block); ok {

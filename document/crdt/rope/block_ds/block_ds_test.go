@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 func TestFind(t *testing.T) {

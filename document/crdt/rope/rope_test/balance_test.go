@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block_ds"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
 func TestBalanceLeaves(t *testing.T) {  /// Failing test for examination purposes
