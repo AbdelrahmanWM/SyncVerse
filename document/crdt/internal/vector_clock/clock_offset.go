@@ -38,5 +38,5 @@ func (c *ClockOffset) CompareHashes(c2 *ClockOffset) int {
 	return c.vectorClock.CompareHashes(c2.vectorClock)
 }
 func (c *ClockOffset) String() string {
-	return c.vectorClock.toString() + ":" + fmt.Sprintf("%d", c.offset)
+	return c.vectorClock.String() + ":" + fmt.Sprintf("%d", c.offset)
 }

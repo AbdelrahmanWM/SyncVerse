@@ -144,7 +144,7 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 			case 0: // concurrent
 				hashComp := blk.CompareHashes(contentBlock)
 				if hashComp > 0 {
-					refNode.Blocks().Update(i, []*Block{contentBlock}, 0) // insert the block in the right place
+					refNode.Blocks().Update(i, []*Block{contentBlock}, 0) // insert the block before
 					inserted = true
 				} else if hashComp == 0 {
 					return error_formatter.NewError("SAME EVENT VECTOR CLOCK!")

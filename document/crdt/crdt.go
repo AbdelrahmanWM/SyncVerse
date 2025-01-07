@@ -6,6 +6,7 @@ import (
 
 	d "github.com/AbdelrahmanWM/SyncVerse/document/crdt/data_structure"
 	event "github.com/AbdelrahmanWM/SyncVerse/document/crdt/event"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/event_priority_queue.go"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/rope/value"
 	v "github.com/AbdelrahmanWM/SyncVerse/document/crdt/internal/vector_clock"
@@ -15,19 +16,21 @@ type CRDT struct {
 	replicaID          string
 	currentVectorClock v.VectorClock
 	dataStructure      d.CRDTDataStructure
-	eventQueue         []*event.Event
+	eventQueue        event_priority_queue.EventPriorityQueue
+	processedEvents    []*event.Event
 }
 
 func NewCRDT(dataStructure d.CRDTDataStructure, replicaID string, vectorClock v.VectorClock) *CRDT {
-	crdtVectorClock:=vectorClock
-	if crdtVectorClock==nil{
-		crdtVectorClock=v.NewVectorClock(replicaID)
+	crdtVectorClock := vectorClock
+	if crdtVectorClock == nil {
+		crdtVectorClock = v.NewVectorClock(replicaID)
 	}
 	return &CRDT{
 		replicaID,
 		crdtVectorClock,
 		dataStructure,
-		make([]*event.Event, 10), //for now
+		*event_priority_queue.NewEventPriorityQueue(nil), //temp
+		make([]*event.Event, 10),         //for now
 	}
 }
 
@@ -64,7 +67,7 @@ func (crdt *CRDT) Prepare(a *action.Action) (*event.Event, error) {
 	default:
 		return nil, error_formatter.NewError("Action type not found")
 	}
-	crdt.eventQueue = append(crdt.eventQueue, &e) // temp
+	crdt.eventQueue.Push(&e) // temp
 	return &e, nil
 }
 func (crdt *CRDT) Apply(e *event.Event) error {
@@ -102,6 +105,6 @@ func (crdt *CRDT) Query(remoteReplicaID string) []event.Event { // temp
 	// todo: implementation
 	return []event.Event{}
 }
-func (crdt *CRDT)DataStructure()d.CRDTDataStructure{
+func (crdt *CRDT) DataStructure() d.CRDTDataStructure {
 	return crdt.dataStructure
 }

@@ -3,6 +3,7 @@ package vector_clock
 import (
 	"slices"
 	"strconv"
+	"strings"
 )
 
 type VectorClock map[string]int
@@ -28,8 +29,8 @@ func (v VectorClock) Copy() VectorClock {
 
 }
 func (vc VectorClock) CompareHashes(vc2 VectorClock) int {
-	str1 := vc.toString()
-	str2 := vc2.toString()
+	str1 := vc.String()
+	str2 := vc2.String()
 	if str1 == str2 {
 		return 0
 	} else if str1 < str2 {
@@ -46,6 +47,8 @@ func (vc1 VectorClock) Equals(vc2 VectorClock) bool {
 	}
 	return len(vc1) == len(vc2)
 }
+
+// return -1 (earlier), 0 (concurrent), 1 (later)
 func (vc1 VectorClock) Compare(vc2 VectorClock) int {
 	vc1Higher := true
 	vc2Higher := true
@@ -126,13 +129,18 @@ func toKeysArray(m map[string]int) []string {
 	}
 	return results
 }
-func (vc VectorClock) toString() string {
-	var result string
+func (vc VectorClock) String() string {
+	var result strings.Builder
 	keys := toKeysArray(vc)
 	slices.Sort(keys)
-	for _, v := range keys {
-		result += (v + "-" + strconv.Itoa(vc[v]) + "-")
+	for i, v := range keys {
+		result.WriteString(v)
+		result.WriteString("-")
+		result.WriteString(strconv.Itoa(vc[v]))
+		if i+1 != len(keys) {
+			result.WriteString("-")
+		}
 	}
-	return result
+	return result.String()
 
 }
