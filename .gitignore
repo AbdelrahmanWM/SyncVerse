@@ -2,3 +2,5 @@ notes.*
 *.txt
 notes
 *.exe
+
+.vscode
