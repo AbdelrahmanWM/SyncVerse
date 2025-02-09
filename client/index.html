@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -6,7 +6,27 @@
     <title>Sync Verse Client</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div
+      id="root"
+      style="
+        display: flex;
+        height: 100vh;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <button onclick="joinSession()">Join Session</button>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script src="./public//wasm/wasm_exec.js"></script>
+    <script>
+      const go = new Go();
+      WebAssembly.instantiateStreaming(
+        fetch("./public/wasm/crdt_conn.wasm"),
+        go.importObject
+      ).then((result) => {
+        go.run(result.instance);
+      });
+    </script>
   </body>
 </html>

@@ -4,22 +4,26 @@
 package main
 
 import (
-	// "syscall/js"
+	"math/rand"
+	"strconv"
+	"syscall/js"
 
+	crdtconn "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
-	// "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/webrtc_peer"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 )
 
 func main() {
-
-	// peer := webrtc_peer.NewWebRTCPeer("A")
 	Log("New peer!")
-	// js.Global().Set("connectToSignalingServer", js.FuncOf(peer.ConnectToSignalingServer))
-	// js.Global().Set("disconnectFromSignalingServer", js.FuncOf(peer.DisconnectFromSignalingServer))
-	// js.Global().Set("getAllPeerIDs", js.FuncOf(peer.GetAllPeerIDs))
-	// js.Global().Set("newPeerConnection", js.FuncOf(peer.NewPeerConnectionJS))
-	// js.Global().Set("clearLog", js.FuncOf(ClearLog))
-	// js.Global().Set("sendToAll", js.FuncOf(peer.SendToAll))
-	// js.Global().Set("sindIdentifySelfMessage", js.FuncOf(peer.SindIdentifySelfMessageJS))
+	js.Global().Set("joinSession", js.FuncOf(JoinSession))
 	select {}
+}
+func JoinSession(v js.Value, p []js.Value) any {
+	clientID := getRandomID()
+	peerConnectionManager := crdtconn.GetPeerConnectionManager()
+	peerConnectionManager.AddNewPeer(clientID)
+	return nil
+}
+func getRandomID() global.ReplicaID { // temp
+	return global.ReplicaID(strconv.Itoa(rand.Int()))
 }
