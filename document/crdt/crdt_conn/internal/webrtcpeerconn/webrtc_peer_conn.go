@@ -1,4 +1,6 @@
+//go:build js && wasm
 
+// +build: js,wasm
 package webrtcpeerconn
 
 import (
@@ -7,6 +9,8 @@ import (
 	"log"
 	"os"
 	"sync"
+
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/conn_types"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/signalingserverconn"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
 	"github.com/AbdelrahmanWM/signalingserver/signalingserver/message"
@@ -14,12 +18,13 @@ import (
 )
 
 type PeerConnection struct {
-	peerIDs             [2]string
-	signalingServerConn *signalingserverconn.SignalingServerConn
-	peerConnection      *webrtc.PeerConnection
-	dataChannel         *webrtc.DataChannel
-	pendingCandidates   []*webrtc.ICECandidate
-	candidateMux        sync.Mutex
+	peerIDs              [2]string
+	signalingServerConn  *signalingserverconn.SignalingServerConn
+	peerConnection       *webrtc.PeerConnection
+	dataChannel          *webrtc.DataChannel
+	pendingCandidates    []*webrtc.ICECandidate
+	candidateMux         sync.Mutex
+	peerConnectionEvents PeerConnectionEvents
 }
 
 func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signalingserverconn.SignalingServerConn, connectedPeerID string) (*PeerConnection, error) {
@@ -30,63 +35,30 @@ func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signal
 	if err != nil {
 		return nil, err
 	}
-
 	dataChannel, err := pc.CreateDataChannel("chan"+peerIDs[0]+peerIDs[1], nil)
 	if err != nil {
 		Log("Problem creating dataChannel")
+		return nil, err
 	}
-	dataChannel.OnOpen(func() {
-		Log(fmt.Sprintf("Data channel '%s'-'%d' open.", dataChannel.Label(), *dataChannel.ID()))
 
-	})
-	dataChannel.OnClose(func() {
-		Log(fmt.Sprintf("Data channel '%s'-'%d' closed.", dataChannel.Label(), *dataChannel.ID()))
-	})
-	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		Log(fmt.Sprintf("Message from DataChannel '%s': '%s'\n", dataChannel.Label(), string(msg.Data)))
-	})
-	pc.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		handleConnectionStateChange(s)
-	})
-	pc.OnDataChannel(func(d *webrtc.DataChannel) {
-		handleDataChannel(d)
-	})
-	pc.OnICECandidate(func(c *webrtc.ICECandidate) {
-		if c == nil {
-			return
-		}
-		candidateMux.Lock()
-		defer candidateMux.Unlock()
+	peerConnectionEvents := make(PeerConnectionEvents, 1)
+	peerConnection := PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux, peerConnectionEvents}
 
-		desc := pc.RemoteDescription()
-		if desc == nil {
-			pendingCandidates = append(pendingCandidates, c)
-		} else {
-			candidateContent := message.ICECandidateContent{Candidate: c.ToJSON().Candidate, SdpMid: c.ToJSON().SDPMid, SdpMLineIndex: c.ToJSON().SDPMLineIndex, UsernameFragment: c.ToJSON().UsernameFragment}
-			candidateContentJson, err := json.Marshal(candidateContent)
-			if err != nil {
-				Log("Error marshalling message content :" + err.Error())
-			}
+	// handlers for datachannel events
+	dataChannel.OnOpen(func() { peerConnection.dataChannelOnOpen(dataChannel) })
+	dataChannel.OnClose(func() { peerConnection.dataChannelOnClose(dataChannel) })
+	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) { peerConnection.dataChannelOnMessage(msg, dataChannel) })
 
-			candidateMsg := message.Message{
-				Kind:    message.ICECandidate,
-				PeerID:  peerIDs[1],
-				Reach:   message.OnePeer,
-				Sender:  peerIDs[0],
-				Content: candidateContentJson,
-			}
-			candidateMsgJson, err := json.Marshal(candidateMsg)
-			if err != nil {
-				Log("Error marshaling message: " + err.Error())
-			}
-			err = signalingServerConn.Send(string(candidateMsgJson))
-			if err != nil {
-				Log("Error sending message: " + err.Error())
-			}
-		}
-	})
-	return &PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux}, nil
+	// handlers for peer connection events
+	pc.OnConnectionStateChange(func(s webrtc.PeerConnectionState) { handleConnectionStateChange(s) })
+	pc.OnDataChannel(func(d *webrtc.DataChannel) { handleDataChannel(d) })
+	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) { peerConnection.OnICECandidate(candidate) })
+
+	// handlers for peer connection object events
+	go peerConnection.peerConnectionEventListener()
+	return &peerConnection, nil
 }
+
 func (p *PeerConnection) SendOffer() error {
 	offer, err := p.peerConnection.CreateOffer(nil)
 	if err != nil {
@@ -171,6 +143,10 @@ func (p *PeerConnection) SetRemoteDescription(input json.RawMessage) error {
 		} else {
 			Log("Successfully set remote description using sdp")
 		}
+		//temp
+		p.PushEvent(PeerEvent{OfferDescriptionSet, nil})
+
+		// p.signalingServerConn.
 
 	}()
 	return nil //temp
@@ -268,4 +244,74 @@ func handleDataChannel(d *webrtc.DataChannel) {
 			Log(fmt.Sprintf("Data channel '%s'-'%d' closed.", d.Label(), *d.ID()))
 		})
 	}
+}
+func (pc *PeerConnection) dataChannelOnOpen(dataChannel *webrtc.DataChannel) {
+	Log(fmt.Sprintf("Data channel '%s'-'%d' open.", dataChannel.Label(), *dataChannel.ID()))
+	pc.PushEvent(PeerEvent{PeerConnectionEstablished, nil})
+}
+func (pc *PeerConnection) dataChannelOnClose(dataChannel *webrtc.DataChannel) {
+	Log(fmt.Sprintf("Data channel '%s'-'%d' closed.", dataChannel.Label(), *dataChannel.ID()))
+}
+func (pc *PeerConnection) dataChannelOnMessage(msg webrtc.DataChannelMessage, dataChannel *webrtc.DataChannel) {
+	Log(fmt.Sprintf("Message from DataChannel '%s': '%s'\n", dataChannel.Label(), string(msg.Data)))
+}
+func (pc *PeerConnection) OnICECandidate(c *webrtc.ICECandidate) {
+	if c == nil {
+		return
+	}
+	pc.candidateMux.Lock()
+	defer pc.candidateMux.Unlock()
+
+	desc := pc.peerConnection.RemoteDescription()
+	if desc == nil {
+		pc.pendingCandidates = append(pc.pendingCandidates, c)
+	} else {
+		candidateContent := message.ICECandidateContent{Candidate: c.ToJSON().Candidate, SdpMid: c.ToJSON().SDPMid, SdpMLineIndex: c.ToJSON().SDPMLineIndex, UsernameFragment: c.ToJSON().UsernameFragment}
+		candidateContentJson, err := json.Marshal(candidateContent)
+		if err != nil {
+			Log("Error marshalling message content :" + err.Error())
+		}
+
+		candidateMsg := message.Message{
+			Kind:    message.ICECandidate,
+			PeerID:  pc.peerIDs[1],
+			Reach:   message.OnePeer,
+			Sender:  pc.peerIDs[0],
+			Content: candidateContentJson,
+		}
+		candidateMsgJson, err := json.Marshal(candidateMsg)
+		if err != nil {
+			Log("Error marshaling message: " + err.Error())
+		}
+		err = pc.signalingServerConn.Send(string(candidateMsgJson))
+		if err != nil {
+			Log("Error sending message: " + err.Error())
+		}
+	}
+}
+
+func (pc *PeerConnection) peerConnectionEventListener() {
+	for event := range pc.peerConnectionEvents {
+		Log(fmt.Sprintf("Peer connection moved to state %s:", event.State))
+		pc.handlePeerConnectionEvent(&event)
+	}
+}
+func (pc *PeerConnection) handlePeerConnectionEvent(event *PeerEvent) {
+	switch event.State {
+	case PeerConnectionOpened:
+		pc.SendOffer()
+	case OfferDescriptionSet:
+		err := pc.SendPendingICECandidates()
+		if err != nil {
+			Log("Error sending ICE candidates: " + err.Error())
+		}
+		Log("Successfully sent ICE candidates")
+		pc.SendAnswer()
+	case PeerConnectionEstablished:
+		pc.SendMessage([]byte("Hello Peer!"))
+	}
+
+}
+func (pc *PeerConnection) PushEvent(peerConnectionEvent PeerEvent) {
+	pc.peerConnectionEvents <- peerConnectionEvent
 }

@@ -1,8 +1,16 @@
+//go:build js && wasm
+
+// +build: js,wasm
 package webrtc_peer
 
+// TODO: refactor the module
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"syscall/js"
+
+	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/conn_types"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/signalingserverconn"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/webrtcpeerconn"
@@ -17,6 +25,7 @@ type WebRTCPeer struct {
 	replicaIDToServerIDs map[global.ReplicaID]string
 	signalingServerConn  *signalingserverconn.SignalingServerConn
 	peerConnections      map[string]*webrtcpeerconn.PeerConnection
+	peerEvents           PeerEvents
 }
 
 func NewWebRTCPeer(replicaID global.ReplicaID) *WebRTCPeer {
@@ -26,9 +35,13 @@ func NewWebRTCPeer(replicaID global.ReplicaID) *WebRTCPeer {
 	for key, pc := range peerConnections {
 		connectionMap[key] = pc
 	}
-	signalingServerConn := signalingserverconn.NewSignalingServerConn(connectionMap)
+	peerEvents := make(PeerEvents, 1)
 
-	return &WebRTCPeer{replicaID, replicaIDToServerIDs, signalingServerConn, peerConnections}
+	signalingServerConn := signalingserverconn.NewSignalingServerConn(&peerEvents, connectionMap)
+
+	p := &WebRTCPeer{replicaID, replicaIDToServerIDs, signalingServerConn, peerConnections, peerEvents}
+	go p.peerEventListener() // starting the event listener
+	return p
 }
 func (p *WebRTCPeer) ConnectToSignalingServer() {
 	p.signalingServerConn.Connect()
@@ -53,6 +66,7 @@ func (p *WebRTCPeer) NewPeerConnection(peerConnectionID string) error {
 	return nil
 }
 func (peer *WebRTCPeer) SendOffer(peerID string) error {
+	Log("sending offer")
 	return peer.peerConnections[peerID].SendOffer()
 }
 func (peer *WebRTCPeer) SendAnswer(peerID string) error {
@@ -60,7 +74,7 @@ func (peer *WebRTCPeer) SendAnswer(peerID string) error {
 }
 
 func (peer *WebRTCPeer) GetAllPeerIDs() error {
-	if peer.signalingServerConn.Socket() == nil {
+	if peer.signalingServerConn.Socket().IsUndefined() {
 		Log("Socket connection not found.")
 		return errors.New("[ERROR] socket connection not found") // temp
 	}
@@ -81,7 +95,7 @@ func (peer *WebRTCPeer) GetAllPeerIDs() error {
 	return nil
 }
 
-func (p *WebRTCPeer) SendToAll(message string) error {////
+func (p *WebRTCPeer) SendToAll(message string) error { ////
 	for _, pc := range p.peerConnections {
 		err := pc.SendMessage([]byte(message))
 		if err != nil {
@@ -103,10 +117,82 @@ func (p *WebRTCPeer) RemovePeerConnection(id string) {
 	p.signalingServerConn.RemovePeerConnection(id)
 }
 
-// ////////////////////////////////////////////
-func (p *WebRTCPeer) JoinSession() {
-	// connect to signaling server
-	p.signalingServerConn.Connect()
-	p.signalingServerConn.SindIdentifySelfMessage()
+//////////////////////////////////////////
 
+func (p *WebRTCPeer) peerEventListener() {
+	for event := range p.peerEvents {
+		Log(fmt.Sprintf("Peer moved to state %s:", event.State))
+		p.handlePeerEvent(event)
+	}
+}
+func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
+	switch event.State {
+	case SignalingInitiated:
+		Log(fmt.Sprintf("Peer have initialized signaling"))
+		p.GetAllPeerIDs()
+	case GotAllPeerIDs:
+		Log("Successfully got all peer ids")
+		peerIDs, ok := event.Data.(GetAllPeersMetadata)
+		if !ok {
+			Log("Error parsing event data")
+			break
+		}
+		for _, peerID := range peerIDs.PeerIDS {
+			err := p.NewPeerConnection(peerID)
+			if err != nil {
+				Log("Error creating peerConnection with peer: " + peerID)
+			}
+			p.peerConnections[peerID].PushEvent(PeerEvent{PeerConnectionOpened, nil})
+			// p.SendOffer(peerID)
+		}
+	case GotAnOffer:
+		Peer, ok := event.Data.(GotAnOfferMetadata)
+		if !ok {
+			Log("Error setting remote description")
+			break
+		}
+		pc, ok := p.peerConnections[Peer.SenderID]
+		if !ok {
+			p.NewPeerConnection(Peer.SenderID)
+			pc = p.peerConnections[Peer.SenderID]
+		}
+		err := pc.SetRemoteDescription(Peer.Offer)
+		if err != nil {
+			Log(fmt.Sprintf("Error setting remote description: %v", err))
+		}
+		// pc.PushEvent(PeerEvent{OfferDescriptionSet,nil})
+	// case SendPendingICECandidates:
+	// 		err = pc.SendPendingICECandidates()
+	// 		if err != nil {
+	// 			Log("Error sending ICE candidates: " + err.Error())
+	// 		}
+	// 		pc.SendAnswer()
+	}
+}
+
+// ////////////////////////////////////////////
+// func (p *WebRTCPeer) JoinSession() {
+// 	// connect to signaling server
+// 	p.signalingServerConn.Connect()
+// 	p.signalingServerConn.SindIdentifySelfMessage()
+
+// }
+func (p *WebRTCPeer) GetReplicaID() global.ReplicaID {
+	return p.replicaID
+}
+
+func (p *WebRTCPeer) ConnectToMesh() {
+	p.ConnectToSignalingServer()
+	p.GetAllPeerIDs()
+}
+
+// func (pr *WebRTCPeer) GetAllPeers(v js.Value, p []js.Value) any {
+// 	pr.GetAllPeerIDs()
+// 	return nil
+// }
+
+func (pr *WebRTCPeer) JoinSession(v js.Value, p []js.Value) any {
+	pr.ConnectToSignalingServer()
+	pr.signalingServerConn.SindIdentifySelfMessage()
+	return nil
 }
