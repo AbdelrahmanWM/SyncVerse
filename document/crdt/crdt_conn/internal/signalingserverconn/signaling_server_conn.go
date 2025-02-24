@@ -90,7 +90,7 @@ func (conn *SignalingServerConn) Send(message string) error {
 }
 func (conn *SignalingServerConn) handleSocketOnOpen(v js.Value, p []js.Value) any {
 	Log("Websocket connected!")
-	*conn.peerNotificationChan<-PeerEvent{SignalingInitiated,nil}
+	conn.peerNotificationChan.PushEvent(SIGNALING_INITIATED, nil)
 
 	return nil
 }
@@ -114,23 +114,9 @@ func (conn *SignalingServerConn) handleSocketOnMessage(v js.Value, p []js.Value)
 		conn.peerID = identifyMsgContent.ID
 
 	case message.Offer:
-		targetPeer := msg.Sender		
-		*conn.peerNotificationChan<-PeerEvent{GotAnOffer,GotAnOfferMetadata{targetPeer,msg.Content}}
+		targetPeer := msg.Sender
+		conn.peerNotificationChan.PushEvent(GOT_OFFER, GotAnOfferMetadata{targetPeer, msg.Content})
 
-		// targetPeerConn, ok := conn.peerConns[targetPeer]
-		// if !ok {
-		// 	Log("Error setting remote description")
-		// 	Log(fmt.Sprintf("%s->%#v", targetPeer, conn.peerConns))
-		// 	break
-		// }
-		// err := targetPeerConn.SetRemoteDescription(msg.Content)
-		// if err != nil {
-		// 	Log(fmt.Sprintf("Error setting remote description: %v", err))
-		// }
-		// err = targetPeerConn.SendPendingICECandidates()
-		// if err != nil {
-		// 	Log("Error sending ICE candidates: " + err.Error())
-		// }
 	case message.Answer:
 		targetPeer := msg.Sender
 		targetPeerConn, ok := conn.peerConns[targetPeer]
@@ -158,12 +144,20 @@ func (conn *SignalingServerConn) handleSocketOnMessage(v js.Value, p []js.Value)
 		}
 	case message.GetAllPeerIDs:
 		var peers message.GetAllPeerIDsContent
-	    err=json.Unmarshal(msg.Content,&peers)
-		if err!=nil{
+		err = json.Unmarshal(msg.Content, &peers)
+		if err != nil {
 			Log("Error unmarshaling GetAllPeerIDsContent")
 		}
-
-		*conn.peerNotificationChan<-PeerEvent{GotAllPeerIDs,GetAllPeersMetadata{peers.PeersIDs}}
+		var connectToPeers = false
+		for _, peerID := range peers.PeersIDs {
+			if _, ok := conn.peerConns[peerID]; !ok {
+				connectToPeers = true
+				break
+			}
+		}
+		if connectToPeers {
+			conn.peerNotificationChan.PushEvent(GOT_ALL_PEER_IDS, GetAllPeersMetadata{peers.PeersIDs})
+		}
 	}
 
 	return nil

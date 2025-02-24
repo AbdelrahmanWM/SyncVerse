@@ -25,9 +25,11 @@ type PeerConnection struct {
 	pendingCandidates    []*webrtc.ICECandidate
 	candidateMux         sync.Mutex
 	peerConnectionEvents PeerConnectionEvents
+	peerConnectionMode PeerConnectionMode
+	notifyPeer PeerEvents
 }
 
-func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signalingserverconn.SignalingServerConn, connectedPeerID string) (*PeerConnection, error) {
+func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signalingserverconn.SignalingServerConn, connectedPeerID string,notifyPeer PeerEvents) (*PeerConnection, error) {
 	peerIDs := [2]string{signalingServerConn.PeerID(), connectedPeerID}
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 	var candidateMux sync.Mutex
@@ -42,7 +44,8 @@ func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signal
 	}
 
 	peerConnectionEvents := make(PeerConnectionEvents, 1)
-	peerConnection := PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux, peerConnectionEvents}
+	PeerConnectionMode:=BUSY
+	peerConnection := PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux, peerConnectionEvents, PeerConnectionMode,notifyPeer}
 
 	// handlers for datachannel events
 	dataChannel.OnOpen(func() { peerConnection.dataChannelOnOpen(dataChannel) })
@@ -144,7 +147,7 @@ func (p *PeerConnection) SetRemoteDescription(input json.RawMessage) error {
 			Log("Successfully set remote description using sdp")
 		}
 		//temp
-		p.PushEvent(PeerEvent{OfferDescriptionSet, nil})
+		p.PushEvent(OFFER_DESCRIPTION_SET, nil)
 
 		// p.signalingServerConn.
 
@@ -247,7 +250,7 @@ func handleDataChannel(d *webrtc.DataChannel) {
 }
 func (pc *PeerConnection) dataChannelOnOpen(dataChannel *webrtc.DataChannel) {
 	Log(fmt.Sprintf("Data channel '%s'-'%d' open.", dataChannel.Label(), *dataChannel.ID()))
-	pc.PushEvent(PeerEvent{PeerConnectionEstablished, nil})
+	pc.PushEvent(PEER_CONNECTION_ESTABLISHED, nil)
 }
 func (pc *PeerConnection) dataChannelOnClose(dataChannel *webrtc.DataChannel) {
 	Log(fmt.Sprintf("Data channel '%s'-'%d' closed.", dataChannel.Label(), *dataChannel.ID()))
@@ -296,22 +299,24 @@ func (pc *PeerConnection) peerConnectionEventListener() {
 		pc.handlePeerConnectionEvent(&event)
 	}
 }
-func (pc *PeerConnection) handlePeerConnectionEvent(event *PeerEvent) {
+func (pc *PeerConnection) handlePeerConnectionEvent(event *PeerConnectionEvent) {
 	switch event.State {
-	case PeerConnectionOpened:
+	case PEER_CONNECTION_OPENED:
 		pc.SendOffer()
-	case OfferDescriptionSet:
+	case OFFER_DESCRIPTION_SET:
 		err := pc.SendPendingICECandidates()
 		if err != nil {
 			Log("Error sending ICE candidates: " + err.Error())
 		}
 		Log("Successfully sent ICE candidates")
 		pc.SendAnswer()
-	case PeerConnectionEstablished:
+	case PEER_CONNECTION_ESTABLISHED:
+		pc.peerConnectionMode=AVAILABLE
+		pc.notifyPeer<-PeerEvent{}
 		pc.SendMessage([]byte("Hello Peer!"))
 	}
 
 }
-func (pc *PeerConnection) PushEvent(peerConnectionEvent PeerEvent) {
-	pc.peerConnectionEvents <- peerConnectionEvent
+func (pc *PeerConnection) PushEvent(state PeerConnectionStatus, metadata PEMetadata) {
+	pc.peerConnectionEvents <- PeerConnectionEvent{state, metadata}
 }

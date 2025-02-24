@@ -26,6 +26,7 @@ type WebRTCPeer struct {
 	signalingServerConn  *signalingserverconn.SignalingServerConn
 	peerConnections      map[string]*webrtcpeerconn.PeerConnection
 	peerEvents           PeerEvents
+	peerMode             PeerMode
 }
 
 func NewWebRTCPeer(replicaID global.ReplicaID) *WebRTCPeer {
@@ -38,8 +39,8 @@ func NewWebRTCPeer(replicaID global.ReplicaID) *WebRTCPeer {
 	peerEvents := make(PeerEvents, 1)
 
 	signalingServerConn := signalingserverconn.NewSignalingServerConn(&peerEvents, connectionMap)
-
-	p := &WebRTCPeer{replicaID, replicaIDToServerIDs, signalingServerConn, peerConnections, peerEvents}
+	peerMode := STABLE
+	p := &WebRTCPeer{replicaID, replicaIDToServerIDs, signalingServerConn, peerConnections, peerEvents, peerMode}
 	go p.peerEventListener() // starting the event listener
 	return p
 }
@@ -58,7 +59,7 @@ func (p *WebRTCPeer) NewPeerConnection(peerConnectionID string) error {
 			},
 		},
 	}
-	conn, err := webrtcpeerconn.NewPeerConnection(&config, p.signalingServerConn, peerConnectionID)
+	conn, err := webrtcpeerconn.NewPeerConnection(&config, p.signalingServerConn, peerConnectionID, p.peerEvents)
 	if err != nil {
 		return err
 	}
@@ -117,8 +118,10 @@ func (p *WebRTCPeer) RemovePeerConnection(id string) {
 	p.signalingServerConn.RemovePeerConnection(id)
 }
 
-//////////////////////////////////////////
-
+// ////////////////////////////////////////
+func (pc *WebRTCPeer) PushEvent(state PeerStatus, metaData PEMetadata) {
+	pc.peerEvents.PushEvent(state, metaData)
+}
 func (p *WebRTCPeer) peerEventListener() {
 	for event := range p.peerEvents {
 		Log(fmt.Sprintf("Peer moved to state %s:", event.State))
@@ -126,73 +129,73 @@ func (p *WebRTCPeer) peerEventListener() {
 	}
 }
 func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
-	switch event.State {
-	case SignalingInitiated:
-		Log(fmt.Sprintf("Peer have initialized signaling"))
-		p.GetAllPeerIDs()
-	case GotAllPeerIDs:
-		Log("Successfully got all peer ids")
-		peerIDs, ok := event.Data.(GetAllPeersMetadata)
-		if !ok {
-			Log("Error parsing event data")
-			break
+	switch p.peerMode {
+	case STABLE: // may need mux protection in the future
+		switch event.State {
+		case START_CONNECTING:
+			p.peerMode = CONNECTING
+			p.ConnectToSignalingServer()
+			p.signalingServerConn.SindIdentifySelfMessage()
+		case START_DISCONNECTING:
+			p.peerMode = DISCONNECTING
+			// disconnection logic
 		}
-		for _, peerID := range peerIDs.PeerIDS {
-			err := p.NewPeerConnection(peerID)
-			if err != nil {
-				Log("Error creating peerConnection with peer: " + peerID)
+	case CONNECTING:
+		switch event.State {
+		case SIGNALING_INITIATED:
+			Log(fmt.Sprintf("Peer have initialized signaling"))
+			p.GetAllPeerIDs()
+		case GOT_ALL_PEER_IDS:
+			Log("Successfully got all peer ids")
+			peerIDs, ok := event.Data.(GetAllPeersMetadata)
+			if !ok {
+				Log("Error parsing event data")
+				break
 			}
-			p.peerConnections[peerID].PushEvent(PeerEvent{PeerConnectionOpened, nil})
-			// p.SendOffer(peerID)
+			for _, peerID := range peerIDs.PeerIDS {
+				err := p.NewPeerConnection(peerID)
+				if err != nil {
+					Log("Error creating peerConnection with peer: " + peerID)
+				}
+				p.peerConnections[peerID].PushEvent(PEER_CONNECTION_OPENED, nil)
+				// p.SendOffer(peerID)
+			}
+		case GOT_OFFER:
+			Peer, ok := event.Data.(GotAnOfferMetadata)
+			if !ok {
+				Log("Error setting remote description")
+				break
+			}
+			pc, ok := p.peerConnections[Peer.SenderID]
+			if !ok {
+				p.NewPeerConnection(Peer.SenderID)
+				pc = p.peerConnections[Peer.SenderID]
+			}
+			err := pc.SetRemoteDescription(Peer.Offer)
+			if err != nil {
+				Log(fmt.Sprintf("Error setting remote description: %v", err))
+			}
+			p.peerMode = STABLE //temp
+
 		}
-	case GotAnOffer:
-		Peer, ok := event.Data.(GotAnOfferMetadata)
-		if !ok {
-			Log("Error setting remote description")
-			break
+	case DISCONNECTING:
+		switch event.State {
+
 		}
-		pc, ok := p.peerConnections[Peer.SenderID]
-		if !ok {
-			p.NewPeerConnection(Peer.SenderID)
-			pc = p.peerConnections[Peer.SenderID]
-		}
-		err := pc.SetRemoteDescription(Peer.Offer)
-		if err != nil {
-			Log(fmt.Sprintf("Error setting remote description: %v", err))
-		}
-		// pc.PushEvent(PeerEvent{OfferDescriptionSet,nil})
-	// case SendPendingICECandidates:
-	// 		err = pc.SendPendingICECandidates()
-	// 		if err != nil {
-	// 			Log("Error sending ICE candidates: " + err.Error())
-	// 		}
-	// 		pc.SendAnswer()
 	}
 }
 
 // ////////////////////////////////////////////
-// func (p *WebRTCPeer) JoinSession() {
-// 	// connect to signaling server
-// 	p.signalingServerConn.Connect()
-// 	p.signalingServerConn.SindIdentifySelfMessage()
 
-// }
 func (p *WebRTCPeer) GetReplicaID() global.ReplicaID {
 	return p.replicaID
 }
 
-func (p *WebRTCPeer) ConnectToMesh() {
-	p.ConnectToSignalingServer()
-	p.GetAllPeerIDs()
-}
-
-// func (pr *WebRTCPeer) GetAllPeers(v js.Value, p []js.Value) any {
-// 	pr.GetAllPeerIDs()
-// 	return nil
-// }
-
 func (pr *WebRTCPeer) JoinSession(v js.Value, p []js.Value) any {
-	pr.ConnectToSignalingServer()
-	pr.signalingServerConn.SindIdentifySelfMessage()
+	pr.PushEvent(START_CONNECTING, nil)
+	return nil
+}
+func (pr *WebRTCPeer) GetAllPeersJS(v js.Value, p []js.Value) any {
+	pr.GetAllPeerIDs()
 	return nil
 }
