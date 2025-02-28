@@ -39,7 +39,7 @@ func NewWebRTCPeer(replicaID global.ReplicaID) *WebRTCPeer {
 	peerEvents := make(PeerEvents, 1)
 
 	signalingServerConn := signalingserverconn.NewSignalingServerConn(&peerEvents, connectionMap)
-	peerMode := STABLE
+	peerMode := DISCONNECTED
 	p := &WebRTCPeer{replicaID, replicaIDToServerIDs, signalingServerConn, peerConnections, peerEvents, peerMode}
 	go p.peerEventListener() // starting the event listener
 	return p
@@ -95,7 +95,34 @@ func (peer *WebRTCPeer) GetAllPeerIDs() error {
 	peer.signalingServerConn.Send(string(msgJSON))
 	return nil
 }
-
+func (peer *WebRTCPeer) SendDisconnectionMessage(notifyAll bool) error {
+	if peer.signalingServerConn.Socket().IsUndefined() {
+		Log("Socket connection not found.")
+		return errors.New("[ERROR] socket connection not found") // temp
+	}
+	disconnectContent := message.DisconnectContent{notifyAll}
+	disconnectContentJSON, err := json.Marshal(disconnectContent)
+	if err != nil {
+		Log("Failed to send disconnection message")
+		return nil
+	}
+	disconnectionMsg := message.Message{
+		Kind:    message.Disconnect,
+		PeerID:  "",
+		Content: disconnectContentJSON,
+		Reach:   message.AllPeers,
+		Sender:  "",
+	}
+	msgJSON, err := json.Marshal(disconnectionMsg)
+	if err != nil {
+		Log("Error marshalling message:" + err.Error())
+		return nil
+	}
+	Log("Sending message: " + string(msgJSON))
+	peer.signalingServerConn.Send(string(msgJSON))
+	// disconnecting the signaling server client
+	return nil
+}
 func (p *WebRTCPeer) SendToAll(message string) error { ////
 	for _, pc := range p.peerConnections {
 		err := pc.SendMessage([]byte(message))
@@ -129,38 +156,22 @@ func (p *WebRTCPeer) peerEventListener() {
 	}
 }
 func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
+
 	switch p.peerMode {
-	case STABLE: // may need mux protection in the future
+	case CONNECTED: // may need mux protection in the future
 		switch event.State {
-		case START_CONNECTING:
-			p.peerMode = CONNECTING
-			p.ConnectToSignalingServer()
-			p.signalingServerConn.SindIdentifySelfMessage()
+
 		case START_DISCONNECTING:
 			p.peerMode = DISCONNECTING
+			for _, pc := range p.peerConnections {
+				pc.PushEvent(DISCONNECTION_INITIATED, nil)
+			}
+			p.SendDisconnectionMessage(true)
+			p.DisconnectFromSignalingServer()
+			p.peerMode = DISCONNECTED
 			// disconnection logic
-		}
-	case CONNECTING:
-		switch event.State {
-		case SIGNALING_INITIATED:
-			Log(fmt.Sprintf("Peer have initialized signaling"))
-			p.GetAllPeerIDs()
-		case GOT_ALL_PEER_IDS:
-			Log("Successfully got all peer ids")
-			peerIDs, ok := event.Data.(GetAllPeersMetadata)
-			if !ok {
-				Log("Error parsing event data")
-				break
-			}
-			for _, peerID := range peerIDs.PeerIDS {
-				err := p.NewPeerConnection(peerID)
-				if err != nil {
-					Log("Error creating peerConnection with peer: " + peerID)
-				}
-				p.peerConnections[peerID].PushEvent(PEER_CONNECTION_OPENED, nil)
-				// p.SendOffer(peerID)
-			}
 		case GOT_OFFER:
+			// p.peerMode = CONNECTING ///////////////////
 			Peer, ok := event.Data.(GotAnOfferMetadata)
 			if !ok {
 				Log("Error setting remote description")
@@ -175,14 +186,79 @@ func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
 			if err != nil {
 				Log(fmt.Sprintf("Error setting remote description: %v", err))
 			}
-			p.peerMode = STABLE //temp
+		case GOT_ALL_PEER_IDS:
+			Log("Successfully got all peer ids")
+			peerIDs, ok := event.Data.(GetAllPeersMetadata)
+			if !ok {
+				Log("Error parsing event data")
+				break
+			}
+			if len(peerIDs.PeerIDS) == 0 {
+
+				p.peerMode = CONNECTED
+			} else {
+
+				for _, peerID := range peerIDs.PeerIDS {
+					err := p.NewPeerConnection(peerID)
+					if err != nil {
+						Log("Error creating peerConnection with peer: " + peerID)
+					}
+					p.peerConnections[peerID].PushEvent(PEER_CONNECTION_OPENED, nil)
+					// p.SendOffer(peerID)
+				}
+			}
 
 		}
-	case DISCONNECTING:
+	case DISCONNECTED: // may need mux protection in the future
 		switch event.State {
+		case START_CONNECTING:
+			p.peerMode = CONNECTING
+			p.ConnectToSignalingServer()
+			p.signalingServerConn.SindIdentifySelfMessage()
 
+		case PEER_CONNECTION_CLOSED:
+			disconnectionMetadata, ok := event.Data.(PeerConnectionDisconnectedMetadata)
+			if !ok {
+				Log("Error extracting disconnected peer id")
+				break
+			}
+			Log("removing peerconnection: "+disconnectionMetadata.PeerID)
+			p.RemovePeerConnection(disconnectionMetadata.PeerID)
+		}
+	case CONNECTING:
+		switch event.State {
+		case SIGNALING_INITIATED:
+			Log(fmt.Sprintf("Peer have initialized signaling"))
+			p.peerMode = CONNECTED
+			p.GetAllPeerIDs()
+
+		case PEER_CONNECTION_AVAILABLE:
+			if p.AllPeerConnectionsStable() {
+				p.peerMode = CONNECTED
+			}
+		}
+	case DISCONNECTING :
+		switch event.State {
+		case PEER_CONNECTION_CLOSED:
+			disconnectionMetadata, ok := event.Data.(PeerConnectionDisconnectedMetadata)
+			if !ok {
+				Log("Error extracting disconnected peer id")
+				break
+			}
+			Log("removing peerconnection: "+disconnectionMetadata.PeerID)
+			p.RemovePeerConnection(disconnectionMetadata.PeerID)
 		}
 	}
+}
+
+func (p *WebRTCPeer) AllPeerConnectionsStable() bool {
+	allPeerConnectionsStable := true
+	for _, pc := range p.peerConnections {
+		if !pc.Stable() {
+			allPeerConnectionsStable = false
+		}
+	}
+	return allPeerConnectionsStable
 }
 
 // ////////////////////////////////////////////
@@ -194,6 +270,15 @@ func (p *WebRTCPeer) GetReplicaID() global.ReplicaID {
 func (pr *WebRTCPeer) JoinSession(v js.Value, p []js.Value) any {
 	pr.PushEvent(START_CONNECTING, nil)
 	return nil
+}
+func (pr *WebRTCPeer) LeaveSession(v js.Value, p []js.Value) any {
+	pr.PushEvent(START_DISCONNECTING, nil)
+	return nil
+}
+func (pr *WebRTCPeer) GetPeerModeJS(v js.Value, p []js.Value) any {
+	Log(string(pr.peerMode))
+	return nil
+
 }
 func (pr *WebRTCPeer) GetAllPeersJS(v js.Value, p []js.Value) any {
 	pr.GetAllPeerIDs()

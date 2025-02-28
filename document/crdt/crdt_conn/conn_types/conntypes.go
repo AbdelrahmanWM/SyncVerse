@@ -5,12 +5,14 @@ import "encoding/json"
 type PeerStatus string
 
 const (
-	START_CONNECTING PeerStatus = "START_CONNECTING"//peer 1
-	SIGNALING_INITIATED PeerStatus = "SIGNALING_INITIATED"//peer 2
-	GOT_ALL_PEER_IDS      PeerStatus = "GOT_ALL_PEER_IDS"//peer 3
-	GOT_OFFER         PeerStatus = "GOT_OFFER" //peer 5 
-    PEER_CONNECTION_AVAILABLE PeerStatus = "PEER_CONNECTION_AVAILABLE"   //peer 8
-	START_DISCONNECTING PeerStatus = "START_DISCONNECTING" // peer -1
+	START_CONNECTING          PeerStatus = "START_CONNECTING"          //1
+	SIGNALING_INITIATED       PeerStatus = "SIGNALING_INITIATED"       //2
+	GOT_ALL_PEER_IDS          PeerStatus = "GOT_ALL_PEER_IDS"          //3
+	GOT_OFFER                 PeerStatus = "GOT_OFFER"                 //5
+	PEER_CONNECTION_AVAILABLE PeerStatus = "PEER_CONNECTION_AVAILABLE" //8
+	/////////////////
+	START_DISCONNECTING    PeerStatus           = "START_DISCONNECTING"    //-1
+	PEER_CONNECTION_CLOSED PeerStatus = "PEER_CONNECTION_CLOSED" //-3
 )
 
 type PeerEvent struct {
@@ -20,21 +22,25 @@ type PeerEvent struct {
 
 type PeerEvents chan PeerEvent
 
-func (pes PeerEvents) PushEvent(state PeerStatus, Data PEMetadata){
-	pes<-PeerEvent{state,Data}
+func (pes PeerEvents) PushEvent(state PeerStatus, Data PEMetadata) {
+	pes <- PeerEvent{state, Data}
 }
 
 ////////////////////////////////////////////////////////////////////
 
-type PeerConnectionStatus string 
+type PeerConnectionStatus string
+
 const (
-	PEER_CONNECTION_OPENED PeerConnectionStatus = "PEER_CONNECTION_OPENED" //pc 5
-	OFFER_DESCRIPTION_SET PeerConnectionStatus = "OFFER_DESCRIPTION_SET"//pc 6
-	PEER_CONNECTION_ESTABLISHED PeerConnectionStatus = "PEER_CONNECTION_ESTABLISHED" //pc 7
+	PEER_CONNECTION_OPENED      PeerConnectionStatus = "PEER_CONNECTION_OPENED"      //5
+	OFFER_DESCRIPTION_SET       PeerConnectionStatus = "OFFER_DESCRIPTION_SET"       //6
+	PEER_CONNECTION_ESTABLISHED PeerConnectionStatus = "PEER_CONNECTION_ESTABLISHED" //7
+	////////////////////////////////
+	DISCONNECTION_INITIATED PeerConnectionStatus = "DISCONNECTION_INITIATED" //-2
 )
+
 type PeerConnectionEvent struct {
 	State PeerConnectionStatus
-	Data PEMetadata
+	Data  PEMetadata
 }
 type PeerConnectionEvents chan PeerConnectionEvent
 
@@ -49,18 +55,21 @@ type GotAnOfferMetadata struct {
 	SenderID string
 	Offer    json.RawMessage
 }
-
-
-type PeerMode string 
+type PeerConnectionDisconnectedMetadata struct{
+	PeerID string
+}
+type PeerMode string
 
 const (
-	CONNECTING PeerMode = "CONNECTING"
+	CONNECTING    PeerMode = "CONNECTING"
 	DISCONNECTING PeerMode = "DISCONNECTING"
-	STABLE PeerMode = "STABLE"
+	CONNECTED        PeerMode = "CONNECTED"
+	DISCONNECTED PeerMode = "DISCONNECTED"
 )
 
-type PeerConnectionMode  string
+type PeerConnectionMode string
+
 const (
 	AVAILABLE PeerConnectionMode = "AVAILABLE"
-	BUSY PeerConnectionMode = "BUSY"
+	BUSY      PeerConnectionMode = "BUSY"
 )

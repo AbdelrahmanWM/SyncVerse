@@ -21,6 +21,7 @@ type Connection interface {
 	SetRemoteDescription(input json.RawMessage) error
 	AddICECandidate(input json.RawMessage) error
 	SendPendingICECandidates() error
+	PushEvent(status PeerConnectionStatus, content PEMetadata)
 }
 type SignalingServerConn struct {
 	socket               js.Value
@@ -110,6 +111,7 @@ func (conn *SignalingServerConn) handleSocketOnMessage(v js.Value, p []js.Value)
 		err := json.Unmarshal(msg.Content, &identifyMsgContent)
 		if err != nil {
 			Log("Error unmarshaling message content " + err.Error())
+			break
 		}
 		conn.peerID = identifyMsgContent.ID
 
@@ -147,6 +149,7 @@ func (conn *SignalingServerConn) handleSocketOnMessage(v js.Value, p []js.Value)
 		err = json.Unmarshal(msg.Content, &peers)
 		if err != nil {
 			Log("Error unmarshaling GetAllPeerIDsContent")
+			break
 		}
 		var connectToPeers = false
 		for _, peerID := range peers.PeersIDs {
@@ -155,8 +158,24 @@ func (conn *SignalingServerConn) handleSocketOnMessage(v js.Value, p []js.Value)
 				break
 			}
 		}
+		if len(peers.PeersIDs) == 0 && len(conn.peerConns) == 0 { // first peer connecting
+			connectToPeers = true
+		}
 		if connectToPeers {
 			conn.peerNotificationChan.PushEvent(GOT_ALL_PEER_IDS, GetAllPeersMetadata{peers.PeersIDs})
+		}
+	case message.DisconnectionNotification:
+
+		var disconnectionNotificationContent message.DisconnectionNotificationContent
+		err := json.Unmarshal(msg.Content, &disconnectionNotificationContent)
+		if err != nil {
+			Log("Error unmarshaling disconnectionNotificationContent")
+			break
+		}
+		targetPC := conn.peerConns[disconnectionNotificationContent.DisconnectedPeerID]
+		if targetPC != nil {
+			targetPC.PushEvent(DISCONNECTION_INITIATED, nil)
+			// conn.RemovePeerConnection(disconnectionNotificationContent.DisconnectedPeerID)
 		}
 	}
 

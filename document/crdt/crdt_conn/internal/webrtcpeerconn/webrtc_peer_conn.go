@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/conn_types"
@@ -25,11 +24,11 @@ type PeerConnection struct {
 	pendingCandidates    []*webrtc.ICECandidate
 	candidateMux         sync.Mutex
 	peerConnectionEvents PeerConnectionEvents
-	peerConnectionMode PeerConnectionMode
-	notifyPeer PeerEvents
+	peerConnectionMode   PeerConnectionMode
+	notifyPeer           PeerEvents
 }
 
-func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signalingserverconn.SignalingServerConn, connectedPeerID string,notifyPeer PeerEvents) (*PeerConnection, error) {
+func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signalingserverconn.SignalingServerConn, connectedPeerID string, notifyPeer PeerEvents) (*PeerConnection, error) {
 	peerIDs := [2]string{signalingServerConn.PeerID(), connectedPeerID}
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 	var candidateMux sync.Mutex
@@ -44,8 +43,8 @@ func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signal
 	}
 
 	peerConnectionEvents := make(PeerConnectionEvents, 1)
-	PeerConnectionMode:=BUSY
-	peerConnection := PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux, peerConnectionEvents, PeerConnectionMode,notifyPeer}
+	PeerConnectionMode := BUSY
+	peerConnection := PeerConnection{peerIDs, signalingServerConn, pc, dataChannel, pendingCandidates, candidateMux, peerConnectionEvents, PeerConnectionMode, notifyPeer}
 
 	// handlers for datachannel events
 	dataChannel.OnOpen(func() { peerConnection.dataChannelOnOpen(dataChannel) })
@@ -53,8 +52,8 @@ func NewPeerConnection(config *webrtc.Configuration, signalingServerConn *signal
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) { peerConnection.dataChannelOnMessage(msg, dataChannel) })
 
 	// handlers for peer connection events
-	pc.OnConnectionStateChange(func(s webrtc.PeerConnectionState) { handleConnectionStateChange(s) })
-	pc.OnDataChannel(func(d *webrtc.DataChannel) { handleDataChannel(d) })
+	pc.OnConnectionStateChange(func(s webrtc.PeerConnectionState) { peerConnection.handleConnectionStateChange(s) })
+	pc.OnDataChannel(func(d *webrtc.DataChannel) { peerConnection.handleDataChannel(d) })
 	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) { peerConnection.OnICECandidate(candidate) })
 
 	// handlers for peer connection object events
@@ -223,18 +222,20 @@ func (p *PeerConnection) SendMessage(message []byte) error {
 	return nil
 }
 
-func handleConnectionStateChange(s webrtc.PeerConnectionState) {
+func (p *PeerConnection) handleConnectionStateChange(s webrtc.PeerConnectionState) {
 	log.Printf("Peer connection state has changed: %s\n", s.String())
 	if s == webrtc.PeerConnectionStateFailed {
 		Log("Peer connection has gone to failed exiting")
-		os.Exit(0)
+		p.peerConnection.Close()
+		// os.Exit(0)
 	}
 	if s == webrtc.PeerConnectionStateClosed {
 		Log("Peer connection has gone to closed exiting")
-		os.Exit(0)
+		p.peerConnection.Close()
+		// os.Exit(0)
 	}
 }
-func handleDataChannel(d *webrtc.DataChannel) {
+func (p *PeerConnection) handleDataChannel(d *webrtc.DataChannel) {
 	{
 		Log(fmt.Sprintf("New data channel '%s'-'%d' open.", d.Label(), *d.ID()))
 		d.OnOpen(func() {
@@ -302,6 +303,7 @@ func (pc *PeerConnection) peerConnectionEventListener() {
 func (pc *PeerConnection) handlePeerConnectionEvent(event *PeerConnectionEvent) {
 	switch event.State {
 	case PEER_CONNECTION_OPENED:
+		pc.peerConnectionMode = BUSY
 		pc.SendOffer()
 	case OFFER_DESCRIPTION_SET:
 		err := pc.SendPendingICECandidates()
@@ -311,11 +313,30 @@ func (pc *PeerConnection) handlePeerConnectionEvent(event *PeerConnectionEvent) 
 		Log("Successfully sent ICE candidates")
 		pc.SendAnswer()
 	case PEER_CONNECTION_ESTABLISHED:
-		pc.peerConnectionMode=AVAILABLE
-		pc.notifyPeer<-PeerEvent{}
+		pc.peerConnectionMode = AVAILABLE
+		pc.notifyPeer.PushEvent(PEER_CONNECTION_AVAILABLE, nil)
 		pc.SendMessage([]byte("Hello Peer!"))
+	case DISCONNECTION_INITIATED:
+		pc.peerConnectionMode = BUSY
+		err := pc.dataChannel.Close() // closed data channel
+		if err != nil {
+			Log("Failed to close data channel")
+		}
+		pc.peerConnection.OnDataChannel(nil)
+		pc.peerConnection.OnConnectionStateChange(nil)
+		pc.OnICECandidate(nil)
+
+		pc.peerConnection.Close() // closed peer connection
+		pc.peerConnectionMode = AVAILABLE
+		pc.notifyPeer.PushEvent(PEER_CONNECTION_CLOSED, PeerConnectionDisconnectedMetadata{pc.peerIDs[1]})
 	}
 
+}
+func (pc *PeerConnection) GetPeerConnectionMode() PeerConnectionMode {
+	return pc.peerConnectionMode
+}
+func (pc *PeerConnection) Stable() bool {
+	return pc.peerConnectionMode == AVAILABLE
 }
 func (pc *PeerConnection) PushEvent(state PeerConnectionStatus, metadata PEMetadata) {
 	pc.peerConnectionEvents <- PeerConnectionEvent{state, metadata}
