@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/types"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 )
 
@@ -41,10 +41,10 @@ func TestFindBlocks(t *testing.T) {
 				fmt.Sprintf("%d", i-1), value.ByteBuffer, false),
 			vector_clock.NewClockOffset(vector_clock.VectorClock{}, (i%2)+1), 0)
 	}
-	rope4.Delete([]*global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}}, 0)
-	rope5Deletions := []*global.ModifyMetadata{}
+	rope4.Delete([]*types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}}, 0)
+	rope5Deletions := []*types.ModifyMetadata{}
 	for i := 10; i > 0; i -= 2 {
-		rope5Deletions = append(rope5Deletions, &global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": i}, 0), [2]int{0, 1}})
+		rope5Deletions = append(rope5Deletions, &types.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": i}, 0), [2]int{0, 1}})
 	}
 	rope5.Delete(rope5Deletions, 0)
 	rope1.PrintRope(false)
@@ -56,37 +56,37 @@ func TestFindBlocks(t *testing.T) {
 		rope                 *rope.Rope
 		index                int
 		length               int
-		modificationMetadata []global.ModifyMetadata
+		modificationMetadata []types.ModifyMetadata
 	}{
 		{
 			rope1,
 			5,
 			2,
-			[]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
+			[]types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
 		},
 		{
 			rope2,
 			5,
 			2,
-			[]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
+			[]types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
 		},
 		{
 			rope3,
 			5,
 			2,
-			[]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
+			[]types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
 		},
 		{
 			rope4,
 			5,
 			2,
-			[]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 9}, 0), [2]int{0, 1}}},
+			[]types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 9}, 0), [2]int{0, 1}}},
 		},
 		{
 			rope5,
 			0,
 			2,
-			[]global.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
+			[]types.ModifyMetadata{{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 0), [2]int{0, 1}}, {vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}},
 		},
 	}
 	for _, ts := range testCases {

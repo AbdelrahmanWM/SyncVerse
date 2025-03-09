@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/types"
 )
 
 type EventMetadata interface {
@@ -43,14 +43,14 @@ func (ivm *InsertionEventMetadata) String() string {
 }
 
 type DeletionEventMetadata struct {
-	DeletionMetadata global.ModifyMetadataArray
+	DeletionMetadata types.ModifyMetadataArray
 	StartIndex       int
 }
 
-// (deletionMetadata global.ModifyMetadataArray, startIndex int)
+// (deletionMetadata types.ModifyMetadataArray, startIndex int)
 func NewDeletionEventMetadata(inputs ...any) EventMetadata {
 	if len(inputs) == 2 {
-		if deletionMetadata, ok := inputs[0].(global.ModifyMetadataArray); ok {
+		if deletionMetadata, ok := inputs[0].(types.ModifyMetadataArray); ok {
 			if index, ok := inputs[1].(int); ok {
 				return &DeletionEventMetadata{deletionMetadata, index}
 			}

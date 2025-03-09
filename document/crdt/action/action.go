@@ -2,14 +2,10 @@ package action
 
 import (
 	"strings"
-
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 )
 
 type Action struct {
 	Kind      ActionCode
-	UserID    global.UserID
-	ReplicaID global.ReplicaID
 	Metadata  ActionMetadata
 }
 
@@ -62,8 +58,8 @@ type ActionConstructor func(inputs ...any) any
 
 var ActionMetadataRegistry map[ActionCode]ActionConstructor = make(map[ActionCode]ActionConstructor)
 
-func NewAction(kind ActionCode, userID global.UserID, replicaID global.ReplicaID, metadata ActionMetadata) *Action {
-	return &Action{kind, userID, replicaID, metadata}
+func NewAction(kind ActionCode,  metadata ActionMetadata) *Action {
+	return &Action{kind,  metadata}
 }
 func registerMetadata(actionCode ActionCode, metadata ActionConstructor) bool {
 	_, ok := ActionMetadataRegistry[actionCode]
@@ -78,10 +74,6 @@ func (a *Action) String() string {
 	var results strings.Builder
 	results.WriteString("Action\n")
 	results.WriteString(a.Kind.String())
-	results.WriteString("\n")
-	results.WriteString(string(a.UserID))
-	results.WriteString("\n")
-	results.WriteString(string(a.ReplicaID))
 	results.WriteString("\n")
 	results.WriteString(a.Metadata.String())
 	results.WriteString("\n")

@@ -45,18 +45,18 @@ func (epq *EventPriorityQueue) Len() int {
 	return epq.eventHeap.Len()
 }
 func main() {
-	items := []*event.Event{ // random events
-		event.NewEvent(event.Insert, "C", "C", vector_clock.VectorClock{"A": 1, "C": 1}, event.NewInsertionEventMetadata()),
-		event.NewEvent(event.Insert, "B", "B", vector_clock.VectorClock{"B": 1}, event.NewInsertionEventMetadata()),
-		event.NewEvent(event.Insert, "A", "A", vector_clock.VectorClock{"A": 2, "B": 1}, event.NewInsertionEventMetadata()),
-		event.NewEvent(event.Insert, "B", "B", vector_clock.VectorClock{}, event.NewInsertionEventMetadata()),
-		event.NewEvent(event.Insert, "A", "A", vector_clock.VectorClock{"A": 1}, event.NewInsertionEventMetadata()),
+	items := []*event.Event{ // random events (seq numbers update ignored)
+		event.NewEvent(event.Insert,  "C", vector_clock.VectorClock{"A": 1, "C": 1},1,1, event.NewInsertionEventMetadata()),
+		event.NewEvent(event.Insert,  "B", vector_clock.VectorClock{"B": 1},1,1, event.NewInsertionEventMetadata()),
+		event.NewEvent(event.Insert,  "A", vector_clock.VectorClock{"A": 2, "B": 1},1,1, event.NewInsertionEventMetadata()),
+		event.NewEvent(event.Insert,  "B", vector_clock.VectorClock{}, 1,1,event.NewInsertionEventMetadata()),
+		event.NewEvent(event.Insert,  "A", vector_clock.VectorClock{"A": 1}, 1,1,event.NewInsertionEventMetadata()),
 	}
 	epq := NewEventPriorityQueue(items)
 
-	e := event.NewEvent(event.Insert, "A", "A", vector_clock.VectorClock{"A": 3, "B": 2, "C": 1}, event.NewInsertionEventMetadata())
+	e := event.NewEvent(event.Insert,  "A", vector_clock.VectorClock{"A": 3, "B": 2, "C": 1}, 1,1,event.NewInsertionEventMetadata())
 	epq.Push(e)
-	e = event.NewEvent(event.Insert, "A", "A", vector_clock.VectorClock{"A": 1, "B": 2, "C": 2}, event.NewInsertionEventMetadata())
+	e = event.NewEvent(event.Insert,  "A", vector_clock.VectorClock{"A": 1, "B": 2, "C": 2},1,1, event.NewInsertionEventMetadata())
 	epq.Push(e)
 	for epq.Len() > 0 {
 		item, err := epq.Pop()

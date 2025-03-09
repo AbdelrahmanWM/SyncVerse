@@ -14,7 +14,7 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/signalingserverconn"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/webrtcpeerconn"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
+	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 
 	"github.com/AbdelrahmanWM/signalingserver/signalingserver/message"
 	"github.com/pion/webrtc/v4"
@@ -222,7 +222,7 @@ func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
 				Log("Error extracting disconnected peer id")
 				break
 			}
-			Log("removing peerconnection: "+disconnectionMetadata.PeerID)
+			Log("removing peerconnection: " + disconnectionMetadata.PeerID)
 			p.RemovePeerConnection(disconnectionMetadata.PeerID)
 		}
 	case CONNECTING:
@@ -237,7 +237,7 @@ func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
 				p.peerMode = CONNECTED
 			}
 		}
-	case DISCONNECTING :
+	case DISCONNECTING:
 		switch event.State {
 		case PEER_CONNECTION_CLOSED:
 			disconnectionMetadata, ok := event.Data.(PeerConnectionDisconnectedMetadata)
@@ -245,7 +245,7 @@ func (p *WebRTCPeer) handlePeerEvent(event PeerEvent) {
 				Log("Error extracting disconnected peer id")
 				break
 			}
-			Log("removing peerconnection: "+disconnectionMetadata.PeerID)
+			Log("removing peerconnection: " + disconnectionMetadata.PeerID)
 			p.RemovePeerConnection(disconnectionMetadata.PeerID)
 		}
 	}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/types"
 
 	// . "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 	// . "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/node"
@@ -27,7 +27,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []*global.ModifyMetadata{
+		toBeDeleted := []*types.ModifyMetadata{
 			{
 				NewClockOffset(VectorClock{"A": 1}, 0),
 				[2]int{0, 1},
@@ -50,7 +50,7 @@ func TestDelete(t *testing.T) {
 		want := " 86420 97531"
 		got := rope.String(false)
 		Assert(t, got, want)
-		toBeDeleted := []*global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []*types.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 3}, 0),
 				[2]int{0, 1},
@@ -81,7 +81,7 @@ func TestDelete(t *testing.T) {
 			NewBlock(NewClockOffset(VectorClock{"A": 1}, 0),
 				"This is Not Deleted", value.ByteBuffer, false),
 			NewClockOffset(VectorClock{}, 1), 0)
-		toBeDeleted := []*global.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
+		toBeDeleted := []*types.ModifyMetadata{ // blocks have to be ordered (blocks order is fixed)
 			{
 				NewClockOffset(VectorClock{"A": 1}, 0),
 				[2]int{8, 12},
@@ -96,7 +96,7 @@ func TestDelete(t *testing.T) {
 	t.Run("delete a divided block", func(t *testing.T) {
 		rope := NewRope(50, 0.7, 0.65, value.ByteBuffer, block_ds.BlockArrayDS, "A")
 		rope.Insert(NewBlock(NewClockOffset(VectorClock{"A": 1}, 0), "|", value.ByteBuffer, false), NewClockOffset(VectorClock{}, 1), 0)
-		rope.Delete([]*global.ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
+		rope.Delete([]*types.ModifyMetadata{{NewClockOffset(VectorClock{}, 0), [2]int{0, 2}}}, 0)
 
 		want := "|"
 		got := rope.String(false)

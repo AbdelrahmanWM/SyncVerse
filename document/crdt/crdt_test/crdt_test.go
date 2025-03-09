@@ -8,12 +8,17 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/action"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/event"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/types"
+	"github.com/AbdelrahmanWM/SyncVerse/document/global"
+)
+
+const  (
+	IGNORED = 0
 )
 
 func TestPrepare(t *testing.T) {
@@ -36,7 +41,7 @@ func TestPrepare(t *testing.T) {
 	if !ok {
 		t.Error("Error casting deletion metadata")
 	}
-	eventDeletionMD, ok := event.NewDeletionEventMetadata(global.ModifyMetadataArray{&global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 0), [2]int{0, 1}}, &global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 1}, 0), [2]int{0, 5}}}, 0).(*event.DeletionEventMetadata)
+	eventDeletionMD, ok := event.NewDeletionEventMetadata(types.ModifyMetadataArray{&types.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 0), [2]int{0, 1}}, &types.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 1}, 0), [2]int{0, 5}}}, 0).(*event.DeletionEventMetadata)
 	if !ok {
 		t.Error("Error casting deletion event metadata ")
 	}
@@ -48,14 +53,14 @@ func TestPrepare(t *testing.T) {
 	}{
 		{
 			"Insertion action",
-			action.NewAction(action.Insert, global.UserID("Samy"), global.ReplicaID("A"), actionInsertionMD),
-			event.NewEvent(event.Insert, global.UserID("Samy"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3},
+			action.NewAction(action.Insert, actionInsertionMD),
+			event.NewEvent(event.Insert,global.ReplicaID("A"), vector_clock.VectorClock{"A": 3},1,1,
 				eventInsertionMD),
 		},
 		{
 			"Deletion action",
-			action.NewAction(action.Delete, global.UserID("Hany"), global.ReplicaID("A"), actionDeletionMD),
-			event.NewEvent(event.Delete, global.UserID("Hany"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3}, eventDeletionMD),
+			action.NewAction(action.Delete, actionDeletionMD),
+			event.NewEvent(event.Delete,  global.ReplicaID("A"), vector_clock.VectorClock{"A": 3},1, 1, eventDeletionMD),
 		},
 	}
 	for i, ts := range testCases {
@@ -98,7 +103,7 @@ func TestApply(t *testing.T) {
 		t.Error("Error casting event1 metadata")
 	}
 	event2MD, ok := event.NewDeletionEventMetadata(
-		global.ModifyMetadataArray{&global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}, &global.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 5}}},
+		types.ModifyMetadataArray{&types.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{}, 1), [2]int{0, 1}}, &types.ModifyMetadata{vector_clock.NewClockOffset(vector_clock.VectorClock{"A": 2}, 0), [2]int{0, 5}}},
 		5,
 	).(*event.DeletionEventMetadata)
 	if !ok {
@@ -111,12 +116,12 @@ func TestApply(t *testing.T) {
 	}{
 		{
 			"Insertion event",
-			event.NewEvent(event.Insert, global.UserID("Samy"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3}, event1MD),
+			event.NewEvent(event.Insert,  global.ReplicaID("A"), vector_clock.VectorClock{"A": 3},IGNORED,IGNORED, event1MD),
 			" ABCDE123 FGHIJ",
 		},
 		{
 			"Deletion event",
-			event.NewEvent(event.Delete, global.UserID("Samy"), global.ReplicaID("A"), vector_clock.VectorClock{"A": 3}, event2MD),
+			event.NewEvent(event.Delete,  global.ReplicaID("A"), vector_clock.VectorClock{"A": 3},IGNORED,IGNORED, event2MD),
 			" ABCDE",
 		},
 	}

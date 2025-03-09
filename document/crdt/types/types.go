@@ -1,15 +1,10 @@
-package global
+package types
 
-import (
-	"strconv"
-	"strings"
-
+import(
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
+	"strings"
+	"strconv"
 )
-
-type ReplicaID string
-type UserID string
-
 type ModifyMetadata struct {
 	ClockOffset *vector_clock.ClockOffset
 	Rng         [2]int

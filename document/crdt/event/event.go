@@ -6,20 +6,26 @@ import (
 	"io"
 	"strings"
 
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
+	s "github.com/AbdelrahmanWM/SyncVerse/document/crdt/sequence_number"
 	vc "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 )
 
 type Event struct {
-	Kind        EventType
-	UserID      global.UserID
-	ReplicaID   global.ReplicaID
-	VectorClock vc.VectorClock
-	Metadata    EventMetadata
+	Kind                 EventType
+	OriginID             global.ReplicaID
+	VectorClock          vc.VectorClock
+	LocalSequenceNumber  s.SeqNum
+	OriginSequenceNumber s.SeqNum
+	Metadata             EventMetadata
 }
 
-func NewEvent(kind EventType, userID global.UserID, replicaID global.ReplicaID, vectorClock vc.VectorClock, metadata EventMetadata) *Event {
-	return &Event{kind, userID, replicaID, vectorClock, metadata} // new event
+func NewEvent(kind EventType, replicaID global.ReplicaID, vectorClock vc.VectorClock, localSequenceNumber s.SeqNum, originSequenceNumber s.SeqNum, metadata EventMetadata) *Event {
+	return &Event{kind, replicaID, vectorClock, localSequenceNumber, originSequenceNumber, metadata} // new event
+}
+
+func (e *Event) HigherSequenceNumber(seqNum s.SeqNum) bool { /// come back later
+	return e.LocalSequenceNumber > seqNum
 }
 
 // The function returns true of the called event have priority over the passed event, false otherwise
@@ -49,11 +55,13 @@ func (e *Event) String() string {
 	result.WriteString("Event\n")
 	result.WriteString(e.Kind.String())
 	result.WriteString("\n")
-	result.WriteString(string(e.UserID))
-	result.WriteString("\n")
-	result.WriteString(string(e.ReplicaID))
+	result.WriteString(string(e.OriginID))
 	result.WriteString("\n")
 	result.WriteString(e.VectorClock.String())
+	result.WriteString("\n")
+	result.WriteString(e.LocalSequenceNumber.String())
+	result.WriteString("\n")
+	result.WriteString(e.OriginSequenceNumber.String())
 	result.WriteString("\n")
 	if e.Metadata != nil {
 		result.WriteString(e.Metadata.String())

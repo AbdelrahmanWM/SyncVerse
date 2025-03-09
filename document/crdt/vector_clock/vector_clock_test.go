@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
+	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 )
 
 func TestNewVectorClock(t *testing.T) {
 	testCases := []struct {
 		v         VectorClock
-		replicaID string
+		replicaID global.ReplicaID
 		newV      VectorClock
 	}{
 		{

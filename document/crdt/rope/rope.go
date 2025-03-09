@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/action"
-	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/global"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
 	blockDS "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/block_ds"
@@ -14,6 +13,7 @@ import (
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/node"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/node"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/rope/value"
+	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/types"
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/vector_clock"
 	"github.com/AbdelrahmanWM/SyncVerse/document/error_formatter.go"
 )
@@ -191,10 +191,10 @@ func (r *Rope) Insert(contentBlock *Block, clockOffset *ClockOffset, startIndex 
 	r.split(refNode)
 	return nil
 }
-func (r *Rope) Delete(blocksMetadata global.ModifyMetadataArray, startIndex int) error {
+func (r *Rope) Delete(blocksMetadata types.ModifyMetadataArray, startIndex int) error {
 	return r.Modify(blocksMetadata, format.Format{action.Delete, ""}, startIndex)
 }
-func (r *Rope) Modify(blocksMetadata global.ModifyMetadataArray, format format.Format, searchStartIndex int) error {
+func (r *Rope) Modify(blocksMetadata types.ModifyMetadataArray, format format.Format, searchStartIndex int) error {
 	blocksLength := len(blocksMetadata)
 	if blocksLength == 0 {
 		return nil
@@ -361,7 +361,7 @@ func (r *Rope) PrintRope(addDeleted bool) {
 }
 func (r *Rope) String(addDeleted bool) string {
 	result := strings.Builder{}
-	r.string(r.Root(),addDeleted,&result)
+	r.string(r.Root(), addDeleted, &result)
 	return result.String()
 }
 func (r *Rope) string(n RopeNode, addDeleted bool, builder *strings.Builder) {
@@ -441,8 +441,8 @@ func (r *Rope) split(curNode *LeafNode) {
 		r.split(curNode)
 	}
 }
-func (r *Rope) FindBlocks(index int, length int) (global.ModifyMetadataArray, error) {
-	var blocksMetadata global.ModifyMetadataArray
+func (r *Rope) FindBlocks(index int, length int) (types.ModifyMetadataArray, error) {
+	var blocksMetadata types.ModifyMetadataArray
 	done := false
 	node, localIndex := r.Find(index, true)
 	if node == nil {
@@ -470,7 +470,7 @@ func (r *Rope) FindBlocks(index int, length int) (global.ModifyMetadataArray, er
 				endIndex = (startIndex + length) // end index not included
 				done = true
 			}
-			blocksMetadata = append(blocksMetadata, &global.ModifyMetadata{block.ClockOffset(), [2]int{startIndex, endIndex}})
+			blocksMetadata = append(blocksMetadata, &types.ModifyMetadata{block.ClockOffset(), [2]int{startIndex, endIndex}})
 			length -= (endIndex - startIndex)
 
 			startIndex = 0

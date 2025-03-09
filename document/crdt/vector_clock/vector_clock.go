@@ -4,17 +4,19 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 )
 
-type VectorClock map[string]int
+type VectorClock map[global.ReplicaID]int
 
-func NewVectorClock(replicaID string) VectorClock {
+func NewVectorClock(replicaID global.ReplicaID) VectorClock {
 	if replicaID == "" {
 		return VectorClock{}
 	}
 	return VectorClock{replicaID: 1}
 }
-func (v VectorClock) NewVectorClock(replicaID string) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
+func (v VectorClock) NewVectorClock(replicaID global.ReplicaID) VectorClock { // for now, constant size increment as number of concurrent users is minimal (<10)
 	newVectorClock := copyMap(v)
 	_, ok := v[replicaID]
 	if ok {
@@ -102,8 +104,8 @@ func (vc1 VectorClock) Merge(vc2 VectorClock) VectorClock {
 	return mergeMaps(vc1, vc2)
 }
 
-func mergeMaps(m1 map[string]int, m2 map[string]int) map[string]int {
-	union := make(map[string]int)
+func mergeMaps(m1 map[global.ReplicaID]int, m2 map[global.ReplicaID]int) map[global.ReplicaID]int {
+	union := make(map[global.ReplicaID]int)
 	for k, val := range m1 {
 		union[k] = val
 	}
@@ -113,15 +115,15 @@ func mergeMaps(m1 map[string]int, m2 map[string]int) map[string]int {
 	return union
 }
 
-func copyMap(m map[string]int) map[string]int {
-	newM := make(map[string]int)
+func copyMap(m map[global.ReplicaID]int) map[global.ReplicaID]int {
+	newM := make(map[global.ReplicaID]int)
 	for k, v := range m {
 		newM[k] = v
 	}
 	return newM
 }
-func toKeysArray(m map[string]int) []string {
-	results := make([]string, len(m))
+func toKeysArray(m map[global.ReplicaID]int) []global.ReplicaID {
+	results := make([]global.ReplicaID, len(m))
 	i := 0
 	for k, _ := range m {
 		results[i] = k
@@ -134,7 +136,7 @@ func (vc VectorClock) String() string {
 	keys := toKeysArray(vc)
 	slices.Sort(keys)
 	for i, v := range keys {
-		result.WriteString(v)
+		result.WriteString(string(v))
 		result.WriteString("-")
 		result.WriteString(strconv.Itoa(vc[v]))
 		if i+1 != len(keys) {
