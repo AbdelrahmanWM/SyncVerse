@@ -49,7 +49,7 @@ func (crdt *CRDT) Prepare(a *action.Action) (*event.Event, error) {
 
 	e.OriginID = crdt.replicaID
 	e.VectorClock = newVectorClock
-	e.LocalSequenceNumber=crdt.localSequenceNumber+1 ///
+	e.LocalSequenceNumber=crdt.localSequenceNumber+1 /// duplicated in the apply as well
 	e.OriginSequenceNumber=crdt.localSequenceNumber+1 ///
 	
 	switch a.Kind {
@@ -156,3 +156,12 @@ func (crdt *CRDT) IncrementLocalSequenceNumber()s.SeqNum{
 	return crdt.localSequenceNumber
 }
 // we need http ping mechanism to check for connection in case webrtc datachannel kept failing
+
+
+/////////////////// SETTERS / GETTERS //////////
+func(crdt * CRDT) LocalSequenceNumber()s.SeqNum{
+	return crdt.localSequenceNumber
+}
+func(crdt * CRDT) ObservedSequenceNumberMap()s.SeqNumMap{
+	return crdt.observedSequenceNumberMap
+}

@@ -20,8 +20,8 @@ type Event struct {
 	Metadata             EventMetadata
 }
 
-func NewEvent(kind EventType, replicaID global.ReplicaID, vectorClock vc.VectorClock, localSequenceNumber s.SeqNum, originSequenceNumber s.SeqNum, metadata EventMetadata) *Event {
-	return &Event{kind, replicaID, vectorClock, localSequenceNumber, originSequenceNumber, metadata} // new event
+func NewEvent(kind EventType, OriginID global.ReplicaID, vectorClock vc.VectorClock, localSequenceNumber s.SeqNum, originSequenceNumber s.SeqNum, metadata EventMetadata) *Event {
+	return &Event{kind, OriginID, vectorClock, localSequenceNumber, originSequenceNumber, metadata} // new event
 }
 
 func (e *Event) HigherSequenceNumber(seqNum s.SeqNum) bool { /// come back later
