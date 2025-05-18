@@ -6,7 +6,7 @@
     <title>Sync Verse Client</title>
   </head>
   <body>
-    <div
+   <div
       id="root"
       style="
         display: flex;
@@ -15,21 +15,10 @@
         justify-content: center;
       "
     >
-      <button onclick="joinSession()">Join Session</button>
-      <button onclick="leaveSession()">Leave Session</button>
-      <button onclick="getAllPeers()">Get Connected Peers</button>
-      <button onclick="getPeerMode()">Get Peer Mode</button>
-    </div>
+      
+    </div> 
+    <script src="/wasm/wasm_exec.js"></script>
     <script type="module" src="/src/main.tsx"></script>
-    <script src="./public//wasm/wasm_exec.js"></script>
-    <script>
-      const go = new Go();
-      WebAssembly.instantiateStreaming(
-        fetch("./public/wasm/crdt_conn.wasm"),
-        go.importObject
-      ).then((result) => {
-        go.run(result.instance);
-      });
-    </script>
+    
   </body>
 </html>
