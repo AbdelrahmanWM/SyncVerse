@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"syscall/js"
 
-	// crdtconn "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/global/utils"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/webrtc_peer"
 	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 )

@@ -10,7 +10,7 @@ import (
 	"syscall/js"
 
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/conn_types"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/global/utils"
 	"github.com/AbdelrahmanWM/signalingserver/signalingserver/message"
 )
 

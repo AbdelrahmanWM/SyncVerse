@@ -12,7 +12,7 @@ import (
 
 	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/conn_types"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/signalingserverconn"
-	. "github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/utils"
+	. "github.com/AbdelrahmanWM/SyncVerse/document/global/utils"
 	"github.com/AbdelrahmanWM/SyncVerse/document/crdt/crdt_conn/internal/webrtcpeerconn"
 	"github.com/AbdelrahmanWM/SyncVerse/document/global"
 
